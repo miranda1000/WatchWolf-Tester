@@ -13,5 +13,6 @@ public enum WorldType {
 
     public void sendSocketData(ArrayList<Byte> out) {
         out.add(this.send);
+        out.add((byte)0x00); // any enum must be 2-bytes
     }
 }

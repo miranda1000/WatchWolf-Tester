@@ -67,7 +67,7 @@ public class WorldBuilderShould extends AbstractTest {
 
         Position testBlock = clientPetition.getPosition().add(0,-1,0);
         connector.server.setBlock(testBlock, Blocks.DIRT);
-        clientPetition.breakBlock(testBlock);
+        clientPetition.breakBlock(testBlock); // TODO REVISIT: the player may be displaced by the lava, and then he will be out of the block range
 
         assertEquals(Blocks.AIR, connector.server.getBlock(testBlock),
                 "The player didn't break the block after swiming in lava (is it dead?)");
