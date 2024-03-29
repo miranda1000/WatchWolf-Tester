@@ -9,7 +9,9 @@ import dev.watchwolf.serversmanager.ServerErrorNotifier;
 import dev.watchwolf.serversmanager.ServerStartNotifier;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +22,13 @@ public class Tester implements Runnable, ServerStartNotifier {
     public static final ServerErrorNotifier DEFAULT_ERROR_PRINT = (err) -> System.err.println("-- Server error --\n" + err.replaceAll("\\\\n", System.lineSeparator()).replaceAll("\\\\t", "\t"));
 
     public static final IPModifier IP_NO_MODIFY = (ip)->ip,
-                                    IP_WSL_MODIFY = (ip)->"127.0.0.1";
+                                    IP_WSL_MODIFY = (ip)-> {
+                                        try {
+                                            return InetAddress.getLocalHost().getHostAddress();
+                                        } catch (UnknownHostException e) {
+                                            return "127.0.0.1";
+                                        }
+                                    };
 
     private TesterConnector connector;
     private String serverIp;
@@ -89,11 +97,11 @@ public class Tester implements Runnable, ServerStartNotifier {
             String []ip = ipPlusPort.split(":");
             new Thread(this.connector).start();
 
-            this.serverIp = ip[0];
+            this.serverIp = this.ipModifier.modifyIp(ip[0]);
             this.serverPort = Integer.parseInt(ip[1]);
             this.serverSocketPort = this.serverPort + 1; // the server socket port it's the next of the server port
 
-            System.out.println("Server started (" + ip[0] + ":" + ip[1] + "), waiting for the 'server up' message");
+            System.out.println("Server started (" + this.serverIp + ":" + this.serverPort + "), waiting for the 'server up' message");
         } catch (IOException ex) {
             ex.printStackTrace();
         }
