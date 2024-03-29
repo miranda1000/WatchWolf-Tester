@@ -41,6 +41,7 @@ public class TestConfigFileLoader {
     private Plugin plugin;
     private Set<Plugin> extraPlugins;
     private WorldType worldType;
+    private String seed;
     private Set<WorldFile> maps;
     private Set<ConfigFile> configFiles;
     private Set<String> users;
@@ -109,12 +110,20 @@ public class TestConfigFileLoader {
         return this.worldType;
     }
 
+    public String getSeed() throws IllegalArgumentException {
+        if (this.seed == null) {
+            String seed = this.getEntry(it -> (String) it.get("seed"));
+            this.seed = (seed != null) ? seed : "1"; // by default, seed="1"
+        }
+        return this.seed;
+    }
+
 
     public Difficulty getDifficulty() throws IllegalArgumentException {
         if (this.difficulty == null) {
             String type = this.getEntry(it -> (String) it.get("difficulty"));
             if (type != null) this.difficulty = Difficulty.valueOf(type.toUpperCase());
-            else this.difficulty = Difficulty.NORMAL; // default value
+            else this.difficulty = Difficulty.PEACEFUL; // default value
         }
         return this.difficulty;
     }

@@ -1,0 +1,17 @@
+server-type:
+  - Spigot:
+      - "1.19"
+#      - "1.18.1"
+#      - "1.8.8"
+#  - Paper:
+#      - "1.14"
+#      - "1.12.2"
+
+users:
+  - "MinecraftGamer_Z"
+
+#recordings-directory: "./src/test/java/generic/resources/recordings"
+
+difficulty: "NORMAL"
+
+plugin: "WatchWolf"

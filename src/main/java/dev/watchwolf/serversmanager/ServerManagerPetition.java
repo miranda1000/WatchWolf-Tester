@@ -9,5 +9,5 @@ import java.io.IOException;
 
 public interface ServerManagerPetition {
     public String getServersManagerVersion() throws IOException;
-    public String startServer(ServerStartNotifier onServerStart, ServerErrorNotifier onError, ServerType mcType, String version, Plugin[]plugins, WorldType worldType, ConfigFile[]configFiles) throws IOException;
+    public String startServer(ServerStartNotifier onServerStart, ServerErrorNotifier onError, ServerType mcType, String version, Plugin[]plugins, WorldType worldType, String seed, ConfigFile[]configFiles) throws IOException;
 }
