@@ -91,8 +91,8 @@ public class Tester implements Runnable, ServerStartNotifier {
             List<Plugin> serverPlugins = new ArrayList<>();
             Collections.addAll(serverPlugins, this.extraPlugins);
             serverPlugins.add(testedPlugin);
-            String ipPlusPort = this.connector.startServer(this, this.onError, this.mcType, this.version, serverPlugins.toArray(new Plugin[0]),
-                    this.worldType, this.seed, Stream.of(this.maps, this.configFiles).flatMap(Stream::of).toArray(ConfigFile[]::new));
+            String ipPlusPort = this.connector.startServer(this, this.onError, this.mcType, this.version,
+                    serverPlugins.toArray(new Plugin[0]), this.worldType, this.seed, this.maps, this.configFiles);
             if (ipPlusPort.equals("")) throw new IOException("Failed to start server " + this.mcType.name() + " version " + this.version);
             String []ip = ipPlusPort.split(":");
             new Thread(this.connector).start();
@@ -103,7 +103,7 @@ public class Tester implements Runnable, ServerStartNotifier {
 
             System.out.println("Server started (" + this.serverIp + ":" + this.serverPort + "), waiting for the 'server up' message");
         } catch (IOException ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 

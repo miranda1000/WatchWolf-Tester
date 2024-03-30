@@ -1,0 +1,7 @@
+provider: "127.0.0.1"
+
+server-type:
+  - Spigot:
+      - "1.0"
+
+plugin: "WatchWolf"

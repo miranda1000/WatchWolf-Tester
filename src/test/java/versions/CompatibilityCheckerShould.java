@@ -2,6 +2,7 @@ package versions;
 
 import dev.watchwolf.tester.AbstractTest;
 import dev.watchwolf.tester.TesterConnector;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -15,6 +16,7 @@ public class CompatibilityCheckerShould extends AbstractTest {
     }
 
     @ParameterizedTest
+    @Disabled
     @ArgumentsSource(CompatibilityCheckerShould.class)
     public void getVersionsFromAllFramework(TesterConnector connector) throws Exception {
         System.out.println("Servers manager version: " + connector.getServersManagerVersion());

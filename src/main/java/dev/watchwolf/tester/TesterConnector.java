@@ -248,7 +248,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
     /* INTERFACES */
     @Override
-    public String startServer(ServerStartNotifier onServerStart, ServerErrorNotifier onError, ServerType mcType, String version, Plugin[] plugins, WorldType worldType, String seed, ConfigFile[] configFiles) throws IOException {
+    public String startServer(ServerStartNotifier onServerStart, ServerErrorNotifier onError, ServerType mcType, String version, Plugin[] plugins, WorldType worldType, String seed, ConfigFile[] maps, ConfigFile[] configFiles) throws IOException {
         this.onServerStart = onServerStart;
         this.onServerError = onError;
 
@@ -267,7 +267,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
         SocketHelper.addString(message, seed);
 
-        SocketHelper.addArray(message, new ConfigFile[]{}); // world files (it is currently merged with the config files)
+        SocketHelper.addArray(message, maps);
         SocketHelper.addArray(message, configFiles);
 
         DataOutputStream dos = new DataOutputStream(this.serversManagerSocket.getOutputStream());
