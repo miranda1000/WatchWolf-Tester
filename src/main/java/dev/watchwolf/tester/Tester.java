@@ -119,7 +119,7 @@ public class Tester implements Runnable, ServerStartNotifier {
 
             // whitelist the players
             for (String client : this.clientNames) this.connector.whitelistPlayer(client);
-            try { Thread.sleep(2000); } catch (Exception ignore){} // TODO synchronize with the server (don't connect before the dispatcher whitelist the player!)
+            this.connector.synchronize(); // synchronize with the server (don't connect before the dispatcher whitelist the player!)
 
             // start the clients
             for (String client : this.clientNames) {
