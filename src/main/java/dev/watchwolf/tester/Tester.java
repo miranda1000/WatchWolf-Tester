@@ -9,7 +9,9 @@ import dev.watchwolf.serversmanager.ServerErrorNotifier;
 import dev.watchwolf.serversmanager.ServerStartNotifier;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +22,13 @@ public class Tester implements Runnable, ServerStartNotifier {
     public static final ServerErrorNotifier DEFAULT_ERROR_PRINT = (err) -> System.err.println("-- Server error --\n" + err.replaceAll("\\\\n", System.lineSeparator()).replaceAll("\\\\t", "\t"));
 
     public static final IPModifier IP_NO_MODIFY = (ip)->ip,
-                                    IP_WSL_MODIFY = (ip)->"127.0.0.1";
+                                    IP_WSL_MODIFY = (ip)-> {
+                                        try {
+                                            return InetAddress.getLocalHost().getHostAddress();
+                                        } catch (UnknownHostException e) {
+                                            return "127.0.0.1";
+                                        }
+                                    };
 
     private TesterConnector connector;
     private String serverIp;
@@ -33,6 +41,7 @@ public class Tester implements Runnable, ServerStartNotifier {
     private final Plugin testedPlugin;
     private final Plugin[] extraPlugins;
     private final WorldType worldType;
+    private final String seed;
     private final WorldFile[] maps;
     private final ConfigFile[] configFiles;
     private final String[] clientNames;
@@ -41,7 +50,7 @@ public class Tester implements Runnable, ServerStartNotifier {
 
     private final Difficulty initialDifficulty;
 
-    public Tester(Socket serverManagerSocket, ServerType mcType, String version, Plugin testedPlugin, Plugin[] extraPlugins, WorldType worldType, Difficulty difficulty, WorldFile[] maps, ConfigFile[] configFiles, Socket clientsManagerSocket, String[] clientNames, boolean overrideSync, IPModifier ipModifier) {
+    public Tester(Socket serverManagerSocket, ServerType mcType, String version, Plugin testedPlugin, Plugin[] extraPlugins, WorldType worldType, String seed, Difficulty difficulty, WorldFile[] maps, ConfigFile[] configFiles, Socket clientsManagerSocket, String[] clientNames, boolean overrideSync, IPModifier ipModifier) {
         this.connector = new TesterConnector(serverManagerSocket, clientsManagerSocket, overrideSync);
 
         this.mcType = mcType;
@@ -49,6 +58,7 @@ public class Tester implements Runnable, ServerStartNotifier {
         this.testedPlugin = testedPlugin;
         this.extraPlugins = extraPlugins;
         this.worldType = worldType;
+        this.seed = seed;
         this.maps = maps;
         this.configFiles = configFiles;
         this.clientNames = clientNames;
@@ -56,8 +66,8 @@ public class Tester implements Runnable, ServerStartNotifier {
         this.initialDifficulty = difficulty;
     }
 
-    public Tester(Socket serverManagerSocket, ServerType mcType, String version, Plugin testedPlugin, Plugin[] extraPlugins, WorldType worldType, Difficulty difficulty, WorldFile[] maps, ConfigFile[] configFiles, Socket clientsManagerSocket, String[] clientNames, boolean overrideSync) {
-        this(serverManagerSocket, mcType, version, testedPlugin, extraPlugins, worldType, difficulty, maps, configFiles, clientsManagerSocket, clientNames, overrideSync, Tester.IP_NO_MODIFY);
+    public Tester(Socket serverManagerSocket, ServerType mcType, String version, Plugin testedPlugin, Plugin[] extraPlugins, WorldType worldType, String seed, Difficulty difficulty, WorldFile[] maps, ConfigFile[] configFiles, Socket clientsManagerSocket, String[] clientNames, boolean overrideSync) {
+        this(serverManagerSocket, mcType, version, testedPlugin, extraPlugins, worldType, seed, difficulty, maps, configFiles, clientsManagerSocket, clientNames, overrideSync, Tester.IP_NO_MODIFY);
     }
 
     public Tester setOnServerReady(ServerStartNotifier onServerReady) {
@@ -81,19 +91,19 @@ public class Tester implements Runnable, ServerStartNotifier {
             List<Plugin> serverPlugins = new ArrayList<>();
             Collections.addAll(serverPlugins, this.extraPlugins);
             serverPlugins.add(testedPlugin);
-            String ipPlusPort = this.connector.startServer(this, this.onError, this.mcType, this.version, serverPlugins.toArray(new Plugin[0]),
-                    this.worldType, Stream.of(this.maps, this.configFiles).flatMap(Stream::of).toArray(ConfigFile[]::new));
+            String ipPlusPort = this.connector.startServer(this, this.onError, this.mcType, this.version,
+                    serverPlugins.toArray(new Plugin[0]), this.worldType, this.seed, this.maps, this.configFiles);
             if (ipPlusPort.equals("")) throw new IOException("Failed to start server " + this.mcType.name() + " version " + this.version);
             String []ip = ipPlusPort.split(":");
             new Thread(this.connector).start();
 
-            this.serverIp = ip[0];
+            this.serverIp = this.ipModifier.modifyIp(ip[0]);
             this.serverPort = Integer.parseInt(ip[1]);
             this.serverSocketPort = this.serverPort + 1; // the server socket port it's the next of the server port
 
-            System.out.println("Server started (" + ip[0] + ":" + ip[1] + "), waiting for the 'server up' message");
+            System.out.println("Server started (" + this.serverIp + ":" + this.serverPort + "), waiting for the 'server up' message");
         } catch (IOException ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 
@@ -109,7 +119,7 @@ public class Tester implements Runnable, ServerStartNotifier {
 
             // whitelist the players
             for (String client : this.clientNames) this.connector.whitelistPlayer(client);
-            try { Thread.sleep(2000); } catch (Exception ignore){} // TODO synchronize with the server (don't connect before the dispatcher whitelist the player!)
+            this.connector.synchronize(); // synchronize with the server (don't connect before the dispatcher whitelist the player!)
 
             // start the clients
             for (String client : this.clientNames) {

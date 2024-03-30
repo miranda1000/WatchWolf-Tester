@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class EntitiesTester extends AbstractTest {
     @Override
     public String getConfigFile() {
-        return "src/test/java/generic/resources/config.yaml";
+        return "src/test/java/generic/resources/with-mobs.yaml";
     }
 
     @ParameterizedTest
@@ -72,6 +72,7 @@ public class EntitiesTester extends AbstractTest {
         // @ref https://minecraft.fandom.com/wiki/Chicken
         client.attack(spawnedChicken);
 
-        assertFalse(Arrays.stream(connector.server.getEntities(spawnPosition,3)).anyMatch(e -> e.getUUID().equals(spawnedChicken.getUUID())));
+        assertFalse(Arrays.stream(connector.server.getEntities(spawnPosition,3)).anyMatch(e -> e.getUUID().equals(spawnedChicken.getUUID())),
+                "Expected chicken to be dead; got existing chicken instead");
     }
 }

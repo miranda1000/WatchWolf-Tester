@@ -38,7 +38,7 @@ public class ServerStarterShould extends AbstractTest {
         }
     }
 
-    private static final int TIMEOUT = (3+10)*60; // ~3 minutes to queue all the servers, and leave 10 minutes to let them start
+    private static final int TIMEOUT = 10*60; // leave 10 minutes to let them start
 
     private ArrayList<String> expected;
     double startTime;
@@ -69,7 +69,7 @@ public class ServerStarterShould extends AbstractTest {
 
                 System.out.println("Starting server for " + serverType.name() + " " + serverVersion);
                 Tester tester = new Tester(serversManagerSocket, serverType, serverVersion, this.fileLoader.getPlugin(),
-                        this.fileLoader.getExtraPlugins(), WorldType.FLAT, Difficulty.PEACEFUL, this.fileLoader.getMaps(), this.fileLoader.getConfigFiles(),
+                        this.fileLoader.getExtraPlugins(), WorldType.FLAT, "1", Difficulty.PEACEFUL, this.fileLoader.getMaps(), this.fileLoader.getConfigFiles(),
                         clientsManagerSocket, this.fileLoader.getUsers(), this.fileLoader.getOverrideSync(),
                         this.fileLoader.getProvider().equals("127.0.0.1") ? Tester.IP_WSL_MODIFY : Tester.IP_NO_MODIFY)
                         /*.setOnServerError(Tester.DEFAULT_ERROR_PRINT)*/;

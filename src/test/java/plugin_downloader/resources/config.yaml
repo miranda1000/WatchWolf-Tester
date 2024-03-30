@@ -1,0 +1,8 @@
+server-type:
+  - Spigot:
+      - "1.20.2"
+
+plugin: "WatchWolf"
+
+extra-plugins:
+  - "https://www.spigotmc.org/resources/portalgun-1-8-1-20.44746/"

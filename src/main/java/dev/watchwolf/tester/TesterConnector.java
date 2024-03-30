@@ -248,7 +248,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
     /* INTERFACES */
     @Override
-    public String startServer(ServerStartNotifier onServerStart, ServerErrorNotifier onError, ServerType mcType, String version, Plugin[] plugins, WorldType worldType, ConfigFile[] configFiles) throws IOException {
+    public String startServer(ServerStartNotifier onServerStart, ServerErrorNotifier onError, ServerType mcType, String version, Plugin[] plugins, WorldType worldType, String seed, ConfigFile[] maps, ConfigFile[] configFiles) throws IOException {
         this.onServerStart = onServerStart;
         this.onServerError = onError;
 
@@ -265,11 +265,14 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
         worldType.sendSocketData(message);
 
+        SocketHelper.addString(message, seed);
+
+        SocketHelper.addArray(message, maps);
         SocketHelper.addArray(message, configFiles);
 
         DataOutputStream dos = new DataOutputStream(this.serversManagerSocket.getOutputStream());
         synchronized (this.serversManagerSocket) { // response with return -> reserve the socket before the thread does
-            dos.write(SocketHelper.toByteArray(message), 0, message.size());
+            dos.write(SocketHelper.toByteArray(message));
 
             // read response
             DataInputStream dis = new DataInputStream(this.serversManagerSocket.getInputStream());

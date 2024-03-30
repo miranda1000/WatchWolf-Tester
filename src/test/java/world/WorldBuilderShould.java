@@ -27,10 +27,8 @@ public class WorldBuilderShould extends AbstractTest {
     @ParameterizedTest
     @ArgumentsSource(WorldBuilderShould.class)
     public void generateFlatWorldIfNoOptionProvided(TesterConnector connector) throws Exception {
-
         Position bedrockPosition = new Position("world", 0,getMinBlockInFlatWorld(connector.getServerVersion()),0);
 
-        // TODO what if a village spawns?
         assertEquals(Blocks.BEDROCK, connector.getBlock(bedrockPosition));
         assertEquals(Blocks.DIRT, connector.getBlock(bedrockPosition.add(0,1,0)));
         assertEquals(Blocks.DIRT, connector.getBlock(bedrockPosition.add(0,2,0)));
@@ -43,14 +41,14 @@ public class WorldBuilderShould extends AbstractTest {
      */
     @ParameterizedTest
     @ArgumentsSource(WorldBuilderShould.class)
-    public void allowEnemiesIfNoOptionProvided(TesterConnector connector) throws Exception {
+    public void denyEnemiesIfNoOptionProvided(TesterConnector connector) throws Exception {
         ExtendedClientPetition clientPetition = connector.getClientPetition(0);
         Position spawnAt = clientPetition.getPosition();
 
         connector.spawnEntity(new Zombie(spawnAt));
 
-        assertTrue(Arrays.asList(connector.getEntities(spawnAt, 10)).stream().anyMatch(e -> e.getType().equals(EntityType.ZOMBIE)),
-                "Expected world with mobs, but found no zombies in the region");
+        assertFalse(Arrays.asList(connector.getEntities(spawnAt, 10)).stream().anyMatch(e -> e.getType().equals(EntityType.ZOMBIE)),
+                "Expected world without mobs, but found zombies in the region");
     }
 
     /**
@@ -61,9 +59,20 @@ public class WorldBuilderShould extends AbstractTest {
     public void preventEnemyDamageIfNoOptionProvided(TesterConnector connector) throws Exception {
         ExtendedClientPetition clientPetition = connector.getClientPetition(0);
 
-        connector.server.setBlock(clientPetition.getPosition(), Blocks.LAVA);
+        // as we'll place lava, it may displace the player
+        // generate some container for it to stay in place
+        connector.server.setBlock(clientPetition.getPosition().add(1,0,0), Blocks.STONE);
+        connector.server.setBlock(clientPetition.getPosition().add(-1,0,0), Blocks.STONE);
+        connector.server.setBlock(clientPetition.getPosition().add(0,0,1), Blocks.STONE);
+        connector.server.setBlock(clientPetition.getPosition().add(0,0,-1), Blocks.STONE);
+
+        Position lavaOrigin = clientPetition.getPosition();
+        connector.server.setBlock(lavaOrigin, Blocks.LAVA);
 
         Thread.sleep(5000); // at this point the user should be dead
+
+        // clear the lava
+        connector.server.setBlock(lavaOrigin, Blocks.AIR);
 
         Position testBlock = clientPetition.getPosition().add(0,-1,0);
         connector.server.setBlock(testBlock, Blocks.DIRT);
