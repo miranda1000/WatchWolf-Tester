@@ -289,7 +289,7 @@ public class TestConfigFileLoader {
                     else if (f instanceof LinkedHashMap) {
                         for (Map.Entry<String,String> file : ((LinkedHashMap<String,String>)f).entrySet()) {
                             try {
-                                files.add(new ConfigFile(file.getValue(), "plugins/" + file.getKey()));
+                                files.add(new ConfigFile(file.getValue(), file.getKey()));
                             } catch (IOException ex) {
                                 crash.set(file.getValue());
                                 return files;
