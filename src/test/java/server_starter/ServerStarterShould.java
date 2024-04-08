@@ -22,11 +22,11 @@ import java.util.function.Supplier;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ServerStarterShould extends AbstractTest {
     private class ServerStartedInfo {
-        public ServerType type;
+        public String type;
         public String version;
         public double timestamp;
 
-        public ServerStartedInfo(ServerType type, String version, double timestamp) {
+        public ServerStartedInfo(String type, String version, double timestamp) {
             this.type = type;
             this.version = version;
             this.timestamp = timestamp;
@@ -34,7 +34,7 @@ public class ServerStarterShould extends AbstractTest {
 
         @Override
         public String toString() {
-            return this.type.name() + " " + this.version;
+            return this.type + " " + this.version;
         }
     }
 
@@ -60,14 +60,14 @@ public class ServerStarterShould extends AbstractTest {
         this.got = new ArrayList<>();
 
         final Object waitForStartup = new Object();
-        for (ServerType serverType : this.fileLoader.getServerTypes()) {
+        for (String serverType : this.fileLoader.getServerTypes()) {
             for (String serverVersion : this.fileLoader.getServerVersions(serverType)) {
-                this.expected.add(serverType.name() + " " + serverVersion);
+                this.expected.add(serverType + " " + serverVersion);
 
                 Socket serversManagerSocket = new Socket(this.fileLoader.getProvider(), 8000),
                         clientsManagerSocket = new Socket(this.fileLoader.getProvider(), 7000); // TODO we won't use any user
 
-                System.out.println("Starting server for " + serverType.name() + " " + serverVersion);
+                System.out.println("Starting server for " + serverType + " " + serverVersion);
                 Tester tester = new Tester(serversManagerSocket, serverType, serverVersion, this.fileLoader.getPlugin(),
                         this.fileLoader.getExtraPlugins(), WorldType.FLAT, "1", Difficulty.PEACEFUL, this.fileLoader.getMaps(), this.fileLoader.getConfigFiles(),
                         clientsManagerSocket, this.fileLoader.getUsers(), this.fileLoader.getOverrideSync(),
@@ -169,14 +169,14 @@ public class ServerStarterShould extends AbstractTest {
                 try {
                     t.getConnector().server.synchronize();
                 } catch (IOException e) {
-                    timedout.add(t.getConnector().getServerType().name() + " " + t.getConnector().getServerVersion());
+                    timedout.add(t.getConnector().getServerType() + " " + t.getConnector().getServerVersion());
                 }
             });
             try {
                 future.get(5, TimeUnit.SECONDS); // 5s to get the response
             } catch (TimeoutException e) {
                 future.cancel(true);
-                timedout.add(t.getConnector().getServerType().name() + " " + t.getConnector().getServerVersion());
+                timedout.add(t.getConnector().getServerType() + " " + t.getConnector().getServerVersion());
             } catch (Exception ignore) {}
         }
         executor.shutdownNow();

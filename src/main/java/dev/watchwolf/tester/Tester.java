@@ -36,7 +36,7 @@ public class Tester implements Runnable, ServerStartNotifier {
 
     private Runnable onServerReady;
     private ServerErrorNotifier onError;
-    private final ServerType mcType;
+    private final String mcType;
     private final String version;
     private final Plugin testedPlugin;
     private final Plugin[] extraPlugins;
@@ -50,7 +50,7 @@ public class Tester implements Runnable, ServerStartNotifier {
 
     private final Difficulty initialDifficulty;
 
-    public Tester(Socket serverManagerSocket, ServerType mcType, String version, Plugin testedPlugin, Plugin[] extraPlugins, WorldType worldType, String seed, Difficulty difficulty, WorldFile[] maps, ConfigFile[] configFiles, Socket clientsManagerSocket, String[] clientNames, boolean overrideSync, IPModifier ipModifier) {
+    public Tester(Socket serverManagerSocket, String mcType, String version, Plugin testedPlugin, Plugin[] extraPlugins, WorldType worldType, String seed, Difficulty difficulty, WorldFile[] maps, ConfigFile[] configFiles, Socket clientsManagerSocket, String[] clientNames, boolean overrideSync, IPModifier ipModifier) {
         this.connector = new TesterConnector(serverManagerSocket, clientsManagerSocket, overrideSync);
 
         this.mcType = mcType;
@@ -66,7 +66,7 @@ public class Tester implements Runnable, ServerStartNotifier {
         this.initialDifficulty = difficulty;
     }
 
-    public Tester(Socket serverManagerSocket, ServerType mcType, String version, Plugin testedPlugin, Plugin[] extraPlugins, WorldType worldType, String seed, Difficulty difficulty, WorldFile[] maps, ConfigFile[] configFiles, Socket clientsManagerSocket, String[] clientNames, boolean overrideSync) {
+    public Tester(Socket serverManagerSocket, String mcType, String version, Plugin testedPlugin, Plugin[] extraPlugins, WorldType worldType, String seed, Difficulty difficulty, WorldFile[] maps, ConfigFile[] configFiles, Socket clientsManagerSocket, String[] clientNames, boolean overrideSync) {
         this(serverManagerSocket, mcType, version, testedPlugin, extraPlugins, worldType, seed, difficulty, maps, configFiles, clientsManagerSocket, clientNames, overrideSync, Tester.IP_NO_MODIFY);
     }
 
@@ -93,7 +93,7 @@ public class Tester implements Runnable, ServerStartNotifier {
             serverPlugins.add(testedPlugin);
             String ipPlusPort = this.connector.startServer(this, this.onError, this.mcType, this.version,
                     serverPlugins.toArray(new Plugin[0]), this.worldType, this.seed, this.maps, this.configFiles);
-            if (ipPlusPort.equals("")) throw new IOException("Failed to start server " + this.mcType.name() + " version " + this.version);
+            if (ipPlusPort.equals("")) throw new IOException("Failed to start server " + this.mcType + " version " + this.version);
             String []ip = ipPlusPort.split(":");
             new Thread(this.connector).start();
 

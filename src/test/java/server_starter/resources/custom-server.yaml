@@ -1,0 +1,8 @@
+server-type:
+  - CustomSpigot:
+      - "1.20.4"
+
+users:
+  - "user1"
+
+plugin: "WatchWolf"
