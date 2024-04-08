@@ -32,7 +32,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
     private final HashMap<String,ExtendedClientPetition> clients;
 
-    private ServerType mcType;
+    private String mcType;
     private String version;
 
     private final boolean overrideSync;
@@ -69,7 +69,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
         this.messageNotifier.remove(onMessage);
     }
 
-    public void setServerManagerSocket(Socket s, ServerType mcType, String version) {
+    public void setServerManagerSocket(Socket s, String mcType, String version) {
         this.serverManagerSocket = s;
 
         this.mcType = mcType;
@@ -215,7 +215,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
     }
 
     /* EXTRA INTERFACES */
-    public ServerType getServerType() {
+    public String getServerType() {
         return this.mcType;
     }
 
@@ -248,7 +248,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
     /* INTERFACES */
     @Override
-    public String startServer(ServerStartNotifier onServerStart, ServerErrorNotifier onError, ServerType mcType, String version, Plugin[] plugins, WorldType worldType, String seed, ConfigFile[] maps, ConfigFile[] configFiles) throws IOException {
+    public String startServer(ServerStartNotifier onServerStart, ServerErrorNotifier onError, String mcType, String version, Plugin[] plugins, WorldType worldType, String seed, ConfigFile[] maps, ConfigFile[] configFiles) throws IOException {
         this.onServerStart = onServerStart;
         this.onServerError = onError;
 
@@ -258,7 +258,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
         message.add((byte) 0b0001_0_000);
         message.add((byte) 0b00000000);
 
-        SocketHelper.addString(message, mcType.name());
+        SocketHelper.addString(message, mcType);
         SocketHelper.addString(message, version);
 
         SocketHelper.addArray(message, plugins);

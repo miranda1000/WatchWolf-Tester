@@ -36,7 +36,7 @@ public class TestConfigFileLoader {
     /**
      * Server type, with all its versions
      */
-    private HashMap<ServerType,Set<String>> serverType;
+    private HashMap<String,Set<String>> serverType;
     private Boolean overrideSync;
     private Plugin plugin;
     private Set<Plugin> extraPlugins;
@@ -146,20 +146,20 @@ public class TestConfigFileLoader {
         return this.provider;
     }
 
-    public Set<ServerType> getServerTypes() throws IllegalArgumentException {
+    public Set<String> getServerTypes() throws IllegalArgumentException {
         if (this.serverType == null) {
             this.serverType = new HashMap<>();
 
-            Set<ServerType> r = this.getEntry(it -> {
+            Set<String> r = this.getEntry(it -> {
                 ArrayList<LinkedHashMap<String,Object>> types = (ArrayList<LinkedHashMap<String,Object>>) it.get("server-type");
-                final Set<ServerType> re = new HashSet<>();
+                final Set<String> re = new HashSet<>();
                 for (LinkedHashMap<String,Object> e : types) {
-                    e.keySet().stream().map(type -> ServerType.valueOf(type)).forEach(s -> re.add(s));
+                    re.addAll(e.keySet());
                 }
                 return re;
             });
             if (r == null) return null; // not found
-            for (ServerType type : r) this.serverType.put(type, null);
+            for (String type : r) this.serverType.put(type, null);
         }
 
         return this.serverType.keySet();
@@ -171,7 +171,7 @@ public class TestConfigFileLoader {
      * @param serverType Type of server to get the versions
      * @return The versions of that server type; null if no server versions for that type.
      */
-    public Set<String> getServerVersions(final ServerType serverType) throws ConfigFileException {
+    public Set<String> getServerVersions(final String serverType) throws ConfigFileException {
         if (this.serverType == null) this.getServerTypes(); // first load hashmap
         Set<String> versions = this.serverType.get(serverType);
         if (versions == null) {
@@ -179,7 +179,7 @@ public class TestConfigFileLoader {
                 ArrayList<LinkedHashMap<String,ArrayList<String>>> types = (ArrayList<LinkedHashMap<String,ArrayList<String>>>) it.get("server-type");
                 final Set<String> re = new HashSet<>();
                 for (LinkedHashMap<String,ArrayList<String>> e : types) {
-                    ArrayList<String> wantedElements = e.get(serverType.name());
+                    ArrayList<String> wantedElements = e.get(serverType);
                     if (wantedElements != null) re.addAll(wantedElements);
                 }
                 return re;
@@ -191,6 +191,10 @@ public class TestConfigFileLoader {
         }
 
         return new HashSet<>(versions);
+    }
+
+    public Set<String> getServerVersions(final ServerType serverType) throws ConfigFileException {
+        return this.getServerVersions(serverType.name());
     }
 
     public boolean getOverrideSync() {

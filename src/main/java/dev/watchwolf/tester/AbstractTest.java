@@ -56,7 +56,7 @@ public class AbstractTest implements TestWatcher, // send feedback
         this.testID = UUID.randomUUID();
 
         final Object waitForStartup = new Object();
-        for (ServerType serverType : this.fileLoader.getServerTypes()) {
+        for (String serverType : this.fileLoader.getServerTypes()) {
             for (String serverVersion : this.fileLoader.getServerVersions(serverType)) {
                 Socket serversManagerSocket = new Socket(this.fileLoader.getProvider(), 8000), // ServersManager socket TODO change port
                         clientsManagerSocket = new Socket(this.fileLoader.getProvider(), 7000); // ClientsManager socket TODO change port
@@ -64,7 +64,7 @@ public class AbstractTest implements TestWatcher, // send feedback
                 final ServerInstance server = new ServerInstance();
                 this.servers.add(server);
 
-                System.out.println("Starting server for " + serverType.name() + " " + serverVersion + " using ID " + testID.toString());
+                System.out.println("Starting server for " + serverType + " " + serverVersion + " using ID " + testID.toString());
                 server.tester = new Tester(serversManagerSocket, serverType, serverVersion, this.fileLoader.getPlugin(),
                         this.fileLoader.getExtraPlugins(), this.fileLoader.getWorldType(), this.fileLoader.getSeed(), this.fileLoader.getDifficulty(),
                         this.fileLoader.getMaps(), this.fileLoader.getConfigFiles(),
@@ -119,7 +119,7 @@ public class AbstractTest implements TestWatcher, // send feedback
                 connector.server.stopTimings()
                         .saveToFile(
                                 new File(this.fileLoader.getTimingsDirectory(),
-                                        "timings-" + connector.getServerType().name() + "-"
+                                        "timings-" + connector.getServerType() + "-"
                                                 + connector.getServerVersion() + ".html")
                         );
             }
@@ -175,7 +175,7 @@ public class AbstractTest implements TestWatcher, // send feedback
         for (Map.Entry<ServerInstance,HashMap<String,Integer>> server : tis.cameras.entrySet()) {
             TesterConnector connector = server.getKey().connector;
             File recordingsFolder = new File(new File(tis.fileLoader.getRecordingsDirectory(), testInfo.getTestMethod().get().getName()),
-                    connector.getServerType().name() + "-" + connector.getServerVersion());
+                    connector.getServerType() + "-" + connector.getServerVersion());
 
             for (Map.Entry<String,Integer> user : server.getValue().entrySet()) {
                 String username = user.getKey();
