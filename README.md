@@ -130,20 +130,20 @@ Use **Java 8**. Everything runs inside Docker, so the host needs nothing but Doc
 
 ## Running this repository's own tests
 
-There are two suites, kept in separate source roots:
+There are three suites, kept in separate source roots:
 
-| | Unit | System / integration |
-| --- | --- | --- |
-| Source root | `src/test/java` | `src/integration-test/java` |
-| Naming | `*Should` | `IT*` |
-| Maven profile | `default` | `-P integration-test` |
-| Needs a live WatchWolf environment | no | **yes** |
+| | Unit | System / integration | Code checks |
+| --- | --- | --- | --- |
+| Source root | `src/test/java` | `src/integration-test/java` | `src/validation-test/java` |
+| Naming | `*Should` | `IT*` | `*Should` |
+| Maven profile | `default` | `-P integration-test` | `-P validation-test` |
+| Needs a live WatchWolf environment | no | **yes** | no |
 
 ```bash
 ./ci/tests.sh --unit                          # fast, hermetic
 ./ci/tests.sh --unit --tests 'ConfigLoaderShould'
 ./ci/tests.sh --integration                   # needs a running environment
-./ci/validator.sh                             # check the naming conventions
+./ci/validator.sh                             # code checks (naming, system-test timeouts)
 ```
 
 The system tests start real Minecraft servers and real bots, so they need a ServersManager on port
@@ -151,7 +151,8 @@ The system tests start real Minecraft servers and real bots, so they need a Serv
 `provider` at that machine. They are excluded from the default build on purpose.
 
 A test file that breaks the naming convention is silently never executed — run `./ci/validator.sh`
-before opening a PR. See [`ci/README.md`](ci/README.md) for details.
+before opening a PR. Those checks are ordinary JUnit tests with one entry per file, so a violation
+names the offending file in `target/validation-reports`. See [`ci/README.md`](ci/README.md).
 
 ## Note on the shared entities
 

@@ -1,55 +1,32 @@
 #!/bin/bash
 
-error=0
+# Runs the "code checks" suite: the tests under src/validation-test/java that assert things about
+# the repository itself rather than about its behaviour (today, the test naming conventions and the
+# system-test timeouts). This is where a linter or a static-analysis run would be launched from too.
+#
+# They are real JUnit tests, so every check reports individually — one entry per offending file —
+# into target/validation-reports.
 
 script_path=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 base_path=$(dirname "$script_path")
-unit_tests_path="$base_path/src/test/java"
-integration_tests_path="$base_path/src/integration-test/java"
+local_maven_repos_path="$HOME/.m2"
 
-# are unit tests following naming standard?
-warning_files=`find "$unit_tests_path" -type f -name '*.java' ! -name '*Should.java'` # every java file that don't end with "Should"
-if [ ! -z "$warning_files" ]; then
-    echo "[e] Some files are not following the unit test naming convention. Any unit test that don't end with 'Should' won't run."
-    echo "[v] Files that don't follow the convention:"
-    echo "$warning_files"
-    error=1
+# docker needs a TTY only when a human is watching; keeping "-it" unconditionally
+# breaks these scripts under CI or any non-interactive shell
+tty_flags=""
+if [ -t 1 ]; then tty_flags="-it"; fi
+
+validation_reports_path="$base_path/target/validation-reports"
+mkdir -p "$validation_reports_path"
+
+docker run $tty_flags --rm -v "$base_path":/compile -v "$local_maven_repos_path":/root/.m2 maven:3.8.4-openjdk-8  \
+                mvn test -P validation-test -Dmaven.test.redirectTestOutputToFile=true --file '/compile'          \
+        2>&1 | tee "$validation_reports_path/docker-log.txt" # forward to file
+result=${PIPESTATUS[0]}
+
+if [ $result -ne 0 ]; then
+    echo "[e] Code checks failed; see $validation_reports_path"
+    exit $result
 fi
 
-# are unit tests following other naming standard?
-warning_files=`find "$unit_tests_path" -type f -name 'IT*.java'` # every java file that start with "IT"
-if [ ! -z "$warning_files" ]; then
-    echo "[e] Some files are not following the unit test naming convention. Any unit test that start with 'IT' won't run."
-    echo "[v] Files that don't follow the convention:"
-    echo "$warning_files"
-    error=1
-fi
-
-# are integration tests following naming standard?
-warning_files=`find "$integration_tests_path" -type f -name '*.java' ! -name 'IT*.java'` # every java file that don't start with "IT"
-if [ ! -z "$warning_files" ]; then
-    echo "[e] Some files are not following the system test naming convention. Any system test that don't start with 'IT' won't run."
-    echo "[v] Files that don't follow the convention:"
-    echo "$warning_files"
-    error=1
-fi
-
-# does all integration tests have a timeout?
-# TODO promote to an error once the suites inherited from src/test/java declare @Timeout
-#      (see WatchWolf-Core's ci/validator.sh, where this check is fatal)
-candidates=`find "$integration_tests_path" -type f -name 'IT*.java'`
-missing_timeout=""
-for candidate in $candidates; do
-    if [ `grep -Pzc '@Timeout.*\n.*public class' "$candidate"` -eq 0 ]; then
-        missing_timeout="$missing_timeout$candidate\n"
-    fi
-done
-if [ ! -z "$missing_timeout" ]; then
-    echo "[w] The following system tests don't have a timeout set; a hung server will hang the suite:"
-    echo -e "$missing_timeout"
-fi
-
-if [ $error -ne 0 ]; then
-    exit $error
-fi
 echo "[i] All done"

@@ -71,9 +71,10 @@ src/main/java/dev/watchwolf/
 ├── client/          ClientPetition, MessageNotifier
 └── clientsmanager/  ClientManagerPetition
 
-src/test/java/            unit tests (*Should) — hermetic, no environment needed
+src/test/java/             unit tests (*Should) — hermetic, no environment needed
 src/integration-test/java/ system tests (IT*) — drive real servers and real bots
-ci/                       dockerized build / tests / validator scripts
+src/validation-test/java/  code checks (*Should) — assert the repo's own conventions
+ci/                        dockerized build / tests / validator scripts
 ```
 
 ## Build and test
@@ -84,21 +85,32 @@ Dockerized scripts, same three verbs as WatchWolf-Core and WatchWolf-ServersMana
 ./ci/build.sh [--preclean]                        # -> target/watchwolf-tester-<version>.jar
 ./ci/tests.sh --unit [--tests <pattern>]          # Surefire, hermetic
 ./ci/tests.sh --integration [--tests <pattern>]   # Failsafe, needs a live environment
-./ci/validator.sh                                 # test-naming lint; run before a PR
+./ci/validator.sh                                 # code checks; run before a PR
 ```
 
-Two suites in two source roots:
+Three suites in three source roots:
 
-| | Unit | System / integration |
-| --- | --- | --- |
-| Source root | `src/test/java` | `src/integration-test/java` |
-| Naming | `*Should` | `IT*` |
-| Runner / profile | Surefire, `default` | Failsafe, `-P integration-test` |
-| Needs an environment | no | **yes** |
+| | Unit | System / integration | Code checks |
+| --- | --- | --- | --- |
+| Source root | `src/test/java` | `src/integration-test/java` | `src/validation-test/java` |
+| Naming | `*Should` | `IT*` | `*Should` |
+| Runner / profile | Surefire, `default` | Failsafe, `-P integration-test` | Surefire, `-P validation-test` |
+| Reports | `target/surefire-reports` | `target/failsafe-reports` | `target/validation-reports` |
+| Needs an environment | no | **yes** | no |
 
-`src/integration-test/java` is attached by `build-helper-maven-plugin`, so both trees compile on
-every build; only *execution* is split by profile. A file that breaks the naming convention is
-**silently never executed** — that is what `ci/validator.sh` catches.
+`build-helper-maven-plugin` attaches the extra source roots, so all three trees compile on every
+build; only *execution* is split by profile. Surefire runs two independent executions
+(`default-test` and `validation-tests`) so a failing code check never lands in the unit report.
+
+**The code checks are real tests, not a shell script.** `src/validation-test/java` asserts things
+about the repository itself — the naming conventions and the system-test timeouts — as JUnit
+`@TestFactory` dynamic tests, one per source file, so a violation reports individually and names
+the offending file. `usePhrasedTestCaseMethodName` is set on Surefire, without which every dynamic
+test would be recorded under its factory method name and the per-file detail would be lost. This is
+where a linter or static-analysis run belongs too.
+
+A file that breaks the naming convention is **silently never executed** by Maven — that is what
+these checks catch.
 
 **The system tests are almost the whole suite.** Everything that extends `AbstractTest` starts real
 Minecraft servers and real bots against a running environment (ServersManager on 8000, ClientsManager
