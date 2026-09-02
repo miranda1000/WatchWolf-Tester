@@ -142,13 +142,17 @@ There are three suites, kept in separate source roots:
 ```bash
 ./ci/tests.sh --unit                          # fast, hermetic
 ./ci/tests.sh --unit --tests 'ConfigLoaderShould'
-./ci/tests.sh --integration                   # needs a running environment
+./ci/tests.sh --integration                   # needs a running environment (checked first)
 ./ci/validator.sh                             # code checks (naming, system-test timeouts)
 ```
 
 The system tests start real Minecraft servers and real bots, so they need a ServersManager on port
 8000 and a ClientsManager on port 7000, and each suite's `resources/config.yaml` must point
 `provider` at that machine. They are excluded from the default build on purpose.
+
+`./ci/tests.sh --integration` checks both ports before doing anything and tells you which component
+is missing, rather than letting all 18 suites fail with `Connection refused` several minutes later.
+Use `--skip-preflight` to bypass it.
 
 A test file that breaks the naming convention is silently never executed — run `./ci/validator.sh`
 before opening a PR. Those checks are ordinary JUnit tests with one entry per file, so a violation

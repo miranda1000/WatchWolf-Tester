@@ -85,6 +85,7 @@ Dockerized scripts, same three verbs as WatchWolf-Core and WatchWolf-ServersMana
 ./ci/build.sh [--preclean]                        # -> target/watchwolf-tester-<version>.jar
 ./ci/tests.sh --unit [--tests <pattern>]          # Surefire, hermetic
 ./ci/tests.sh --integration [--tests <pattern>]   # Failsafe, needs a live environment
+                                                  #   (preflighted; --skip-preflight to bypass)
 ./ci/validator.sh                                 # code checks; run before a PR
 ```
 
