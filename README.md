@@ -116,10 +116,10 @@ A worked example using every key lives in
 
 ## Compile
 
-Use **Java 8**.
+Use **Java 8**. Everything runs inside Docker, so the host needs nothing but Docker itself:
 
 ```bash
-mvn clean package -Dmaven.test.skip=true
+./ci/build.sh --preclean      # -> target/watchwolf-tester-<version>.jar
 ```
 
 ### Dependencies
@@ -130,17 +130,28 @@ mvn clean package -Dmaven.test.skip=true
 
 ## Running this repository's own tests
 
-Most of `src/test/java` is an **integration** suite: it starts real servers and real bots, so it
-needs a live WatchWolf environment and each suite's `resources/config.yaml` must point `provider`
-at it. `config/ConfigLoaderShould` and `versions/CompatibilityCheckerShould` are the two that run
-standalone.
+There are two suites, kept in separate source roots:
 
-The classes are named `*Should` / `*Tester`, which Maven Surefire does not pick up by default —
-run them from your IDE, or name one explicitly:
+| | Unit | System / integration |
+| --- | --- | --- |
+| Source root | `src/test/java` | `src/integration-test/java` |
+| Naming | `*Should` | `IT*` |
+| Maven profile | `default` | `-P integration-test` |
+| Needs a live WatchWolf environment | no | **yes** |
 
 ```bash
-mvn test -Dtest=ConfigLoaderShould
+./ci/tests.sh --unit                          # fast, hermetic
+./ci/tests.sh --unit --tests 'ConfigLoaderShould'
+./ci/tests.sh --integration                   # needs a running environment
+./ci/validator.sh                             # check the naming conventions
 ```
+
+The system tests start real Minecraft servers and real bots, so they need a ServersManager on port
+8000 and a ClientsManager on port 7000, and each suite's `resources/config.yaml` must point
+`provider` at that machine. They are excluded from the default build on purpose.
+
+A test file that breaks the naming convention is silently never executed — run `./ci/validator.sh`
+before opening a PR. See [`ci/README.md`](ci/README.md) for details.
 
 ## Note on the shared entities
 

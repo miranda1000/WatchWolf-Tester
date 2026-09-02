@@ -12,10 +12,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ConfigLoaderShould {
     private static final String PREFIX = "src/test/java/config/resources";
@@ -24,8 +26,9 @@ public class ConfigLoaderShould {
     public void loadSimpleFile() throws IOException {
         TestConfigFileLoader loader = new TestConfigFileLoader(ConfigLoaderShould.PREFIX + "/simple.yaml");
 
-        HashSet<ServerType> expectedServerTypes = new HashSet<>();
-        expectedServerTypes.add(ServerType.Spigot);
+        // server types are free-form strings since custom server softwares became supported
+        HashSet<String> expectedServerTypes = new HashSet<>();
+        expectedServerTypes.add(ServerType.Spigot.name());
 
         HashSet<String> expectedServerVersions = new HashSet<>();
         expectedServerVersions.add("1.14");
@@ -53,9 +56,10 @@ public class ConfigLoaderShould {
 
         String expectedProvider = "192.168.1.80";
 
-        HashSet<ServerType> expectedServerTypes = new HashSet<>();
-        expectedServerTypes.add(ServerType.Spigot);
-        expectedServerTypes.add(ServerType.Paper);
+        // server types are free-form strings since custom server softwares became supported
+        HashSet<String> expectedServerTypes = new HashSet<>();
+        expectedServerTypes.add(ServerType.Spigot.name());
+        expectedServerTypes.add(ServerType.Paper.name());
 
         HashSet<String> expectedSpigotServerVersions = new HashSet<>();
         expectedSpigotServerVersions.add("1.14");
@@ -74,10 +78,14 @@ public class ConfigLoaderShould {
 
         String expectedWorld = "world";
 
+        // remember that config-files put the files inside 'plugins/': ServersManager resolves every
+        // offset against <server>/plugins, so a correct offset does NOT repeat "plugins/".
+        // The map form ("Test2": file) was fixed in 0a16f0e and is correct.
+        // FIXME the zip form still offsets by "plugins/", so it lands in <server>/plugins/plugins/.
+        //       The expectation below characterises today's behaviour, not the desired one.
         ArrayList<String> expectedConfigFiles = new ArrayList<>();
-        // remember that config-files put the files inside 'plugins/'
         expectedConfigFiles.add("plugins/Config.zip");
-        expectedConfigFiles.add("plugins/Test2/Empty.jar");
+        expectedConfigFiles.add("Test2/Empty.jar");
 
         assertEquals(expectedProvider, loader.getProvider());
         assertEquals(expectedServerTypes, loader.getServerTypes());
@@ -85,8 +93,19 @@ public class ConfigLoaderShould {
         assertEquals(expectedPaperServerVersions, loader.getServerVersions(ServerType.Paper));
         assertEquals(expectedUsers, Arrays.asList(loader.getUsers()));
         assertEquals(new UsualPlugin("Residence"), loader.getPlugin());
-        assertEquals(expectedExtraPlugins, Arrays.asList(loader.getExtraPlugins()));
+        // the loader keeps the extra plugins in a Set, so their order is not part of the contract.
+        // note we cannot compare as sets either: SocketData overrides equals() but not hashCode().
+        List<Plugin> actualExtraPlugins = Arrays.asList(loader.getExtraPlugins());
+        assertEquals(expectedExtraPlugins.size(), actualExtraPlugins.size());
+        assertTrue(actualExtraPlugins.containsAll(expectedExtraPlugins),
+                "expected " + expectedExtraPlugins + " in any order, got " + actualExtraPlugins);
         assertEquals(1, loader.getMaps().length); assertEquals(expectedWorld, loader.getMaps()[0].getWorldName());
-        assertEquals(expectedConfigFiles, Arrays.stream(loader.getConfigFiles()).map(file -> file.getOffsetPath() + file.getName() + "." + file.getExtension()).collect(Collectors.toList()));
+        // config files also come out of a Set, so compare without relying on order
+        List<String> actualConfigFiles = Arrays.stream(loader.getConfigFiles())
+                .map(file -> file.getOffsetPath() + file.getName() + "." + file.getExtension())
+                .collect(Collectors.toList());
+        assertEquals(expectedConfigFiles.size(), actualConfigFiles.size());
+        assertTrue(actualConfigFiles.containsAll(expectedConfigFiles),
+                "expected " + expectedConfigFiles + " in any order, got " + actualConfigFiles);
     }
 }

@@ -31,7 +31,7 @@ extra-plugins:
 
 
 maps:
-  - "world": "./src/test/java/generic/resources/world.zip"        # Files inside the 'world' directory, to expand inside the server's 'world' directory
+  - "world": "./src/test/java/config/resources/world.zip"        # Files inside the 'world' directory, to expand inside the server's 'world' directory
 
 config-files:                                                     # Files inside the 'plugins' directory
   - "./src/test/java/config/resources/Config.zip"                 # Files to expand inside the 'plugins' directory
