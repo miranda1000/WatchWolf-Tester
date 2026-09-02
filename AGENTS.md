@@ -130,3 +130,12 @@ run standalone.
   config controls the automatic behaviour.
 - Test resources include committed `.mp4` recordings and world `.zip`s under
   `src/test/java/generic/resources/`; treat them as fixtures, not as output.
+
+## Git conventions
+
+- **`dev` is the working branch.** Every WatchWolf repo integrates and releases from `dev`.
+  `master` (`main` in the WatchWolf standard repo) is downstream of it — never commit there
+  directly, and never open a PR against it.
+- **One branch per change, named for its kind:** `fix/<topic>` for defects, `feature/<topic>` for
+  new work. Branch from `dev`.
+- **Always open a PR into `dev`.** Do not push straight to `dev`, even for a one-line change.
