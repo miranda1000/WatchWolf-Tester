@@ -116,10 +116,10 @@ A worked example using every key lives in
 
 ## Compile
 
-Use **Java 8**.
+Use **Java 8**. Everything runs inside Docker, so the host needs nothing but Docker itself:
 
 ```bash
-mvn clean package -Dmaven.test.skip=true
+./ci/build.sh --preclean      # -> target/watchwolf-tester-<version>.jar
 ```
 
 ### Dependencies
@@ -130,17 +130,33 @@ mvn clean package -Dmaven.test.skip=true
 
 ## Running this repository's own tests
 
-Most of `src/test/java` is an **integration** suite: it starts real servers and real bots, so it
-needs a live WatchWolf environment and each suite's `resources/config.yaml` must point `provider`
-at it. `config/ConfigLoaderShould` and `versions/CompatibilityCheckerShould` are the two that run
-standalone.
+There are three suites, kept in separate source roots:
 
-The classes are named `*Should` / `*Tester`, which Maven Surefire does not pick up by default —
-run them from your IDE, or name one explicitly:
+| | Unit | System / integration | Code checks |
+| --- | --- | --- | --- |
+| Source root | `src/test/java` | `src/integration-test/java` | `src/validation-test/java` |
+| Naming | `*Should` | `IT*` | `*Should` |
+| Maven profile | `default` | `-P integration-test` | `-P validation-test` |
+| Needs a live WatchWolf environment | no | **yes** | no |
 
 ```bash
-mvn test -Dtest=ConfigLoaderShould
+./ci/tests.sh --unit                          # fast, hermetic
+./ci/tests.sh --unit --tests 'ConfigLoaderShould'
+./ci/tests.sh --integration                   # needs a running environment (checked first)
+./ci/validator.sh                             # code checks (naming, system-test timeouts)
 ```
+
+The system tests start real Minecraft servers and real bots, so they need a ServersManager on port
+8000 and a ClientsManager on port 7000, and each suite's `resources/config.yaml` must point
+`provider` at that machine. They are excluded from the default build on purpose.
+
+`./ci/tests.sh --integration` checks both ports before doing anything and tells you which component
+is missing, rather than letting all 18 suites fail with `Connection refused` several minutes later.
+Use `--skip-preflight` to bypass it.
+
+A test file that breaks the naming convention is silently never executed — run `./ci/validator.sh`
+before opening a PR. Those checks are ordinary JUnit tests with one entry per file, so a violation
+names the offending file in `target/validation-reports`. See [`ci/README.md`](ci/README.md).
 
 ## Note on the shared entities
 

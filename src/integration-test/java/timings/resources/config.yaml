@@ -1,0 +1,21 @@
+server-type:
+  - Spigot:
+      - "1.19"
+      - "1.8.8"
+  - Paper:
+      - "1.19"
+      #- "1.18.2"
+      #- "1.17.1"
+      #- "1.16.2"
+      #- "1.15.2"
+      #- "1.14.4"
+      #- "1.13.2"
+      #- "1.12.2"
+      #- "1.11.2"
+      #- "1.10.2"
+      #- "1.9.4"
+      - "1.8.8"
+
+timings-directory: "./src/integration-test/java/timings/resources/reports"
+
+plugin: "WatchWolf"

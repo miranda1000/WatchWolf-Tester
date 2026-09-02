@@ -12,7 +12,17 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.test.skip>true</maven.test.skip>
+
+        <!--
+          Which suite runs is decided by the profiles at the bottom of this file:
+            default           -> unit tests only        (src/test/java, *Should)
+            integration-test  -> system tests only      (src/integration-test/java, IT*)
+            validation-test   -> code checks only       (src/validation-test/java, *Should)
+          System tests need a live WatchWolf environment, so they must never run by default.
+        -->
+        <skip.unit.tests>false</skip.unit.tests>
+        <skip.integration.tests>true</skip.integration.tests>
+        <skip.validation.tests>true</skip.validation.tests>
     </properties>
 
     <dependencies>
@@ -71,8 +81,138 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
+
+            <!-- integration tests live in their own source root -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-integration-test-sources</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/src/integration-test/java/</source>
+                                <source>${project.basedir}/src/validation-test/java/</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+              Surefire runs two independent suites, each with its own reports directory so a
+              failing code check is never mixed into the unit-test report:
+                default-test      unit tests   -> target/surefire-reports
+                validation-tests  code checks  -> target/validation-reports
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <!--
+                      Without this the XML records every dynamic test under its factory method name,
+                      so 27 per-file checks all report as "nameEverySystemTestWithTheItPrefix".
+                      Phrased names put the JUnit display name (here, the offending file) in the report.
+                    -->
+                    <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+                        <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+                    </statelessTestsetReporter>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <configuration>
+                            <skipTests>${skip.unit.tests}</skipTests>
+                            <includes>
+                                <include>**/*Should.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/IT*.java</exclude>
+                                <exclude>**/validation/**</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>validation-tests</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skipTests>${skip.validation.tests}</skipTests>
+                            <reportsDirectory>${project.build.directory}/validation-reports</reportsDirectory>
+                            <includes>
+                                <include>**/validation/*Should.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- integration tests: IT* under src/integration-test/java (need a live environment) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.2.5</version>
+                <executions>
+                    <execution>
+                        <id>integration-tests</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <skipTests>${skip.integration.tests}</skipTests>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <!-- Only unit tests -->
+                <skip.unit.tests>false</skip.unit.tests>
+                <skip.integration.tests>true</skip.integration.tests>
+                <skip.validation.tests>true</skip.validation.tests>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>integration-test</id>
+            <properties>
+                <!-- Only system tests -->
+                <skip.unit.tests>true</skip.unit.tests>
+                <skip.integration.tests>false</skip.integration.tests>
+                <skip.validation.tests>true</skip.validation.tests>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>validation-test</id>
+            <properties>
+                <!-- Only the code checks -->
+                <skip.unit.tests>true</skip.unit.tests>
+                <skip.integration.tests>true</skip.integration.tests>
+                <skip.validation.tests>false</skip.validation.tests>
+            </properties>
+        </profile>
+    </profiles>
 
     <distributionManagement>
         <repository>

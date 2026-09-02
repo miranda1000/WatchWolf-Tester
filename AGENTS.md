@@ -16,7 +16,7 @@ This repo **also still carries the legacy shared library** (`dev.watchwolf.entit
 ```java
 @ExtendWith(WorldInteractionPetitionsShould.class)
 public class WorldInteractionPetitionsShould extends AbstractTest {
-    @Override public String getConfigFile() { return "src/test/java/generic/resources/config.yaml"; }
+    @Override public String getConfigFile() { return "src/test/resources/watchwolf.yaml"; }
 
     @ParameterizedTest
     @ArgumentsSource(WorldInteractionPetitionsShould.class)
@@ -71,31 +71,62 @@ src/main/java/dev/watchwolf/
 ├── client/          ClientPetition, MessageNotifier
 └── clientsmanager/  ClientManagerPetition
 
-src/test/java/       the framework's own tests — these are INTEGRATION tests (see below)
+src/test/java/             unit tests (*Should) — hermetic, no environment needed
+src/integration-test/java/ system tests (IT*) — drive real servers and real bots
+src/validation-test/java/  code checks (*Should) — assert the repo's own conventions
+ci/                        dockerized build / tests / validator scripts
 ```
 
 ## Build and test
 
-Plain Maven — this repo has **no `ci/` scripts and no Surefire/Failsafe configuration**, unlike
-WatchWolf-Core and WatchWolf-ServersManager. `pom.xml` configures only the compiler plugin, so
-`mvn package` produces a thin `target/watchwolf-tester-<version>.jar` with no bundled
-dependencies.
+Dockerized scripts, same three verbs as WatchWolf-Core and WatchWolf-ServersManager:
 
 ```bash
-mvn clean package -Dmaven.test.skip=true    # build the library jar
-mvn test -Dtest=ConfigLoaderShould           # run one class
+./ci/build.sh [--preclean]                        # -> target/watchwolf-tester-<version>.jar
+./ci/tests.sh --unit [--tests <pattern>]          # Surefire, hermetic
+./ci/tests.sh --integration [--tests <pattern>]   # Failsafe, needs a live environment
+                                                  #   (preflighted; --skip-preflight to bypass)
+./ci/validator.sh                                 # code checks; run before a PR
 ```
 
-**A bare `mvn test` runs nothing.** The test classes are named `*Should.java` and `*Tester.java`,
-and neither matches Surefire's default includes (`Test*`, `*Test`, `*Tests`, `*TestCase`). Run
-them from the IDE, or name the class explicitly with `-Dtest=`.
+Three suites in three source roots:
 
-**And most of `src/test/java` is not a unit-test suite anyway.** `generic/`, `world/`,
-`worldguard/`, `timings/`, `server_starter/`, `client/` and `plugin_downloader/` all start real
-Minecraft servers and real bots through a running WatchWolf environment (see the WatchWolf repo's
-`WatchWolfSetup.sh`), and each reads a `resources/config.yaml` whose `provider` must point at that
-machine. `config/ConfigLoaderShould` and `versions/CompatibilityCheckerShould` are the ones that
-run standalone.
+| | Unit | System / integration | Code checks |
+| --- | --- | --- | --- |
+| Source root | `src/test/java` | `src/integration-test/java` | `src/validation-test/java` |
+| Naming | `*Should` | `IT*` | `*Should` |
+| Runner / profile | Surefire, `default` | Failsafe, `-P integration-test` | Surefire, `-P validation-test` |
+| Reports | `target/surefire-reports` | `target/failsafe-reports` | `target/validation-reports` |
+| Needs an environment | no | **yes** | no |
+
+`build-helper-maven-plugin` attaches the extra source roots, so all three trees compile on every
+build; only *execution* is split by profile. Surefire runs two independent executions
+(`default-test` and `validation-tests`) so a failing code check never lands in the unit report.
+
+**The code checks are real tests, not a shell script.** `src/validation-test/java` asserts things
+about the repository itself — the naming conventions and the system-test timeouts — as JUnit
+`@TestFactory` dynamic tests, one per source file, so a violation reports individually and names
+the offending file. `usePhrasedTestCaseMethodName` is set on Surefire, without which every dynamic
+test would be recorded under its factory method name and the per-file detail would be lost. This is
+where a linter or static-analysis run belongs too.
+
+A file that breaks the naming convention is **silently never executed** by Maven — that is what
+these checks catch.
+
+**The system tests are almost the whole suite.** Everything that extends `AbstractTest` starts real
+Minecraft servers and real bots against a running environment (ServersManager on 8000, ClientsManager
+on 7000), and each reads a `resources/config.yaml` whose `provider` must point at that machine. Those
+`resources/` paths are resolved **relative to the project root**, not the classpath, so they move
+with their sources.
+
+The unit suite is deliberately a skeleton (`ConfigLoaderShould`, `SocketHelperShould`,
+`PositionShould`) — enough to protect the wire codec and the config loader while the socket layer is
+reworked, not an attempt at coverage.
+
+**History worth knowing:** until this split, `pom.xml` set `<maven.test.skip>true</maven.test.skip>`,
+so the tests were never even *compiled*, let alone run. Two of `ConfigLoaderShould`'s three
+assertions had silently rotted, and two `FIXME`s in the unit suite mark real bugs it uncovered
+(see `Conventions and gotchas`). Assume anything untested here has drifted.
 
 ## Conventions and gotchas
 
@@ -113,6 +144,17 @@ run standalone.
 
 ### Everything else
 
+- **Two `FIXME`s in the unit suite are real bugs**, characterised rather than fixed so the split
+  stayed reviewable:
+  - `TestConfigFileLoader.getConfigFiles()` offsets the *zip* form by `"plugins/"`, but
+    ServersManager already resolves offsets against `<server>/plugins`, so such a file lands in
+    `plugins/plugins/`. The map form (`"Dir": file`) was fixed in `0a16f0e`; the zip form was not.
+  - `Position.getBlock*()` casts to `int`, truncating towards zero. Minecraft block coordinates
+    floor, so `x = -0.5` should be block `-1` and currently reports `0`.
+- **`SocketData` overrides `equals()` but not `hashCode()`.** `TestConfigFileLoader` keeps plugins
+  and config files in `HashSet`s, so their de-duplication is unreliable and set-based comparisons
+  in tests are unsafe — compare with `containsAll` instead.
+
 - `entities/blocks/special/**` and `entities/entities/EntityType.java` are **generated** by
   [WatchWolf-MaterialGetter](https://github.com/miranda1000/WatchWolf-MaterialGetter). They
   carry a "do not modify" header. Adding a block property is a multi-repo procedure documented in
@@ -129,7 +171,7 @@ run standalone.
   ordering must go through `synchronize()` (`SynchronizationManager`) — `overrideSync` in the
   config controls the automatic behaviour.
 - Test resources include committed `.mp4` recordings and world `.zip`s under
-  `src/test/java/generic/resources/`; treat them as fixtures, not as output.
+  `src/integration-test/java/generic/resources/`; treat them as fixtures, not as output.
 
 ## Git conventions
 
