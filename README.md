@@ -28,7 +28,7 @@ bash WatchWolfSetup.sh --run
 <dependency>
     <groupId>dev.watchwolf</groupId>
     <artifactId>watchwolf-tester</artifactId>
-    <version>0.3.1.1</version>
+    <version>0.3.2</version>
 </dependency>
 ```
 
