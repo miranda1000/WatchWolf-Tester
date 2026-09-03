@@ -1,0 +1,10 @@
+server-type:
+  - Spigot:
+      - "1.14"
+
+users:
+  - "MinecraftGamer_Z"
+
+plugin: "Residence"
+
+startup-timeout: 45

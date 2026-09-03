@@ -49,6 +49,14 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
     private boolean isPeaceful = false; // by default, a world is 'normal'
 
+    /**
+     * Users the config file asked for. Needed to tell "no clients were configured" apart from
+     * "clients were configured, but the setup failed before any of them connected".
+     */
+    private String []expectedClients = new String[0];
+
+    private final PacketHeaderReader headerReader = new PacketHeaderReader();
+
     public TesterConnector(Socket serversManagerSocket, Socket clientsManagerSocket, boolean overrideSync) {
         this.serversManagerSocket = serversManagerSocket;
         this.clientsManagerSocket = clientsManagerSocket;
@@ -93,17 +101,47 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
         return this.server;
     }
 
-    public String []getClients() {
+    /**
+     * Tells the connector which users the run was configured with, so that an empty client pool can
+     * be reported as the setup failure it is.
+     * @param expectedClients Usernames from the config file's `users` key
+     */
+    public void setExpectedClients(String []expectedClients) {
+        this.expectedClients = (expectedClients == null) ? new String[0] : expectedClients.clone();
+    }
+
+    /**
+     * @return Why the client pool is empty, or null if it legitimately is not empty
+     */
+    private String emptyClientPoolReason() {
+        if (!this.clients.isEmpty()) return null;
+        if (this.expectedClients.length == 0) return "No users are configured for this run; add them under `users` in your WatchWolf config file.";
+        return "None of the " + this.expectedClients.length + " configured users (" + String.join(", ", this.expectedClients) + ") connected. "
+                + "The setup failed before the bots joined the server -- look for the setup error reported at `beforeAll`.";
+    }
+
+    public String []getClients() throws ClientNotFoundException {
+        // handing back an empty array here is what turns a setup failure into an
+        // ArrayIndexOutOfBoundsException inside the user's test body
+        String reason = this.emptyClientPoolReason();
+        if (reason != null) throw new ClientNotFoundException(reason);
         return this.clients.keySet().toArray(new String[0]);
     }
 
     public ExtendedClientPetition getClientPetition(String username) throws ClientNotFoundException {
         ExtendedClientPetition client = this.clients.get(username);
-        if (client == null) throw new ClientNotFoundException(username + " not in users pool");
+        if (client == null) {
+            String reason = this.emptyClientPoolReason();
+            throw new ClientNotFoundException((reason != null) ? reason
+                    : username + " not in users pool (connected users: " + String.join(", ", this.clients.keySet()) + ")");
+        }
         return client;
     }
 
     public ExtendedClientPetition getClientPetition(int index) throws ClientNotFoundException {
+        String reason = this.emptyClientPoolReason();
+        if (reason != null) throw new ClientNotFoundException(reason);
+
         Object []clients = this.clients.values().toArray(); // TODO cache the array
         if (index < 0 || clients.length <= index) throw new ClientNotFoundException("There's only " + clients.length + " users in the pool; asked for number " + index);
         return (ExtendedClientPetition) clients[index];
@@ -166,16 +204,20 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
                     timeout = checkingSocket.getSoTimeout();
                 } catch (SocketException ignore) {}
 
+                final Socket socket = checkingSocket;
                 try {
-                    checkingSocket.setSoTimeout(1000); // don't stay longer than 1s
-                    DataInputStream dis = new DataInputStream(checkingSocket.getInputStream());
-                    this.processAsyncReturn(SocketHelper.readShort(dis), dis);
-                } catch (EOFException | SocketException | SocketTimeoutException ignore) {
+                    DataInputStream dis = new DataInputStream(socket.getInputStream());
+                    int header = this.headerReader.read(dis, socket::setSoTimeout);
+                    if (header != PacketHeaderReader.NO_PACKET) this.processAsyncReturn(header, dis);
+                } catch (EOFException | SocketException ignore) {
+                } catch (UnexpectedPacketException | PacketHeaderReader.IncompleteHeaderException ex) {
+                    // the stream offset is no longer known; anything read from here on is garbage
+                    this.dropDesynchronizedConnection(socket, ex);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 } finally {
                     try {
-                        checkingSocket.setSoTimeout(timeout);
+                        if (!socket.isClosed()) socket.setSoTimeout(timeout);
                     } catch (SocketException ex) {
                         ex.printStackTrace();
                     }
@@ -210,8 +252,38 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
                 break;
 
             default:
-                System.out.println("Unknown request: " + header);
+                throw new UnexpectedPacketException(header);
         }
+    }
+
+    /**
+     * Closes a connection whose stream offset we have lost, saying why.
+     * Carrying on would only turn one bad packet into a run's worth of misparsed reads.
+     */
+    private void dropDesynchronizedConnection(Socket socket, IOException cause) {
+        System.err.println("Closing " + describeSocket(socket) + ": " + cause.getMessage());
+        try {
+            socket.close();
+        } catch (IOException ex) {
+            System.err.println("Couldn't close " + describeSocket(socket) + ": " + ex.getMessage());
+        }
+    }
+
+    private String describeSocket(Socket socket) {
+        if (socket == null) return "connection";
+        String name = "connection";
+        if (socket == this.serversManagerSocket) name = "the ServersManager connection";
+        else if (socket == this.clientsManagerSocket) name = "the ClientsManager connection";
+        else if (socket == this.serverManagerSocket) name = "the WatchWolf server connection";
+        else {
+            for (java.util.Map.Entry<String,ExtendedClientPetition> client : this.clients.entrySet()) {
+                if (client.getValue() instanceof ClientSocket && ((ClientSocket)client.getValue()).getSocket() == socket) {
+                    name = "the connection to client " + client.getKey();
+                    break;
+                }
+            }
+        }
+        return name + " (" + socket.getInetAddress() + ":" + socket.getPort() + ")";
     }
 
     /* EXTRA INTERFACES */
