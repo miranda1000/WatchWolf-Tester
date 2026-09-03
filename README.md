@@ -110,6 +110,7 @@ times, once on Spigot 1.8.8, once on Spigot 1.19 and once on Paper 1.14.
 | `invincible` | Cancel all player damage |
 | `timings-directory` | Save a timings report per server here |
 | `recordings-directory` | Save each client's video here |
+| `startup-timeout` | Seconds to wait for a server to become ready before the setup fails. Default `300` |
 
 A worked example using every key lives in
 [`src/test/java/config/resources/complex.yaml`](src/test/java/config/resources/complex.yaml).

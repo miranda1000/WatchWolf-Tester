@@ -54,6 +54,7 @@ boilerplate you can drop.
 | `world-type`, `seed` | World generation (`FLAT` by default in the generated `server.properties`). |
 | `difficulty`, `invincible` | Initial difficulty; whether player damage is cancelled. |
 | `timings-directory`, `recordings-directory` | Where to save timings reports / client videos. |
+| `startup-timeout` | Seconds to wait for a server to become ready before failing `beforeAll`. Default 300. |
 
 See `src/test/java/config/resources/complex.yaml` for a worked example of all of them.
 
@@ -164,6 +165,19 @@ assertions had silently rotted, and two `FIXME`s in the unit suite mark real bug
   connector, and the peer (WatchWolf-Server or WatchWolf-Client) together.
 - Ports are currently **hard-coded** in `AbstractTest`: `provider:8000` (Servers Manager) and
   `provider:7000` (Clients Manager), both marked `TODO change port`.
+- **Setup failures fail `beforeAll`; they are never swallowed.** `Tester.onServerStart` runs on the
+  connector's async thread, so it hands any failure to `setOnSetupFailure`, which `AbstractTest`
+  turns into a `ServerSetupException` naming the phase and the address involved. Nothing runs the
+  test body against a half-built connector — that is what used to surface as
+  `ArrayIndexOutOfBoundsException` on `getClients()[0]` in *user* code. For the same reason
+  `getClients()`/`getClientPetition` throw `ClientNotFoundException` rather than hand back an empty
+  pool; `TesterConnector.setExpectedClients` is what lets them tell "none configured" from "none
+  connected".
+- **The async poll loop reads headers through `PacketHeaderReader`.** The short (1 s) timeout only
+  covers the wait for the *first* byte; once a header has started it is read to completion. Reading
+  both bytes under one timeout and swallowing the exception is what left the stream a byte out of
+  phase and produced the intermittent `EOFException`s. An unrecognised header is fatal for that
+  connection (`UnexpectedPacketException`) — we cannot drain arguments we cannot count.
 - When `provider` is `127.0.0.1`, `AbstractTest` switches the Tester into `IP_WSL_MODIFY` mode,
   which rewrites returned IPs to the local host address — needed because containers report an IP
   the host cannot reach from WSL.
