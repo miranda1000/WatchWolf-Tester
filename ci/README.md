@@ -10,6 +10,12 @@ Every script runs Maven inside Docker, so the host needs nothing but Docker itse
 | `./ci/tests.sh --integration [--tests <pattern>]` | Run the system tests (**needs a live environment**, see below) |
 | `./ci/tests.sh --integration --skip-preflight` | ...without first checking that the environment is up |
 | `./ci/validator.sh` | Run the code checks (naming conventions, system-test timeouts) |
+| `./ci/publish.sh` | Clean, build, run unit tests, and publish to GitHub Packages |
+
+Publishing requires Docker to be running and a GitHub token with `write:packages` configured
+under server id `github` in `~/.m2/settings.xml`. The script mounts `~/.m2` for settings and the
+dependency cache, and publishes to the repository in `pom.xml`. No local Maven or Java is needed.
+Run system tests separately before releasing.
 
 ## The three suites
 
