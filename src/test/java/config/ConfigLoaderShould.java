@@ -44,6 +44,28 @@ public class ConfigLoaderShould {
     }
 
     @Test
+    public void boundTheStartupWaitEvenWhenTheFileSaysNothing() throws IOException {
+        TestConfigFileLoader loader = new TestConfigFileLoader(ConfigLoaderShould.PREFIX + "/simple.yaml");
+
+        // an unbounded wait turns "the server never came up" into a run that hangs until CI kills it
+        assertEquals(300, loader.getStartupTimeout());
+    }
+
+    @Test
+    public void readTheStartupTimeoutFromTheFile() throws IOException {
+        TestConfigFileLoader loader = new TestConfigFileLoader(ConfigLoaderShould.PREFIX + "/timeout.yaml");
+
+        assertEquals(45, loader.getStartupTimeout());
+    }
+
+    @Test
+    public void rejectAStartupTimeoutThatCannotElapse() throws IOException {
+        TestConfigFileLoader loader = new TestConfigFileLoader(ConfigLoaderShould.PREFIX + "/bad-timeout.yaml");
+
+        assertThrowsExactly(IllegalArgumentException.class, () -> loader.getStartupTimeout());
+    }
+
+    @Test
     public void loadErrorFile() throws IOException {
         TestConfigFileLoader loader = new TestConfigFileLoader(ConfigLoaderShould.PREFIX + "/error.yaml");
 

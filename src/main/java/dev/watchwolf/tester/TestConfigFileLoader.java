@@ -51,6 +51,7 @@ public class TestConfigFileLoader {
 
     private Difficulty difficulty;
     private Boolean invincibleModeEnabled;
+    private Integer startupTimeout;
 
     public TestConfigFileLoader(String file) throws IOException {
         this.file = new String(Files.readAllBytes(Paths.get(file)), StandardCharsets.UTF_8);
@@ -144,6 +145,22 @@ public class TestConfigFileLoader {
         }
 
         return this.provider;
+    }
+
+    /**
+     * How long to wait for a server to become ready before giving up on it, in seconds.
+     * An unbounded wait turns "the server never came up" into a test run that hangs until the CI
+     * job is killed, with nothing in the report to say why.
+     * @return `startup-timeout` from the config file, or 300 seconds
+     */
+    public int getStartupTimeout() throws IllegalArgumentException {
+        if (this.startupTimeout == null) {
+            Integer timeout = this.getEntry(it -> (Integer) it.get("startup-timeout"));
+            if (timeout != null && timeout <= 0) throw new IllegalArgumentException("`startup-timeout` must be a positive number of seconds; got " + timeout);
+            this.startupTimeout = (timeout != null) ? timeout : 300; // default value
+        }
+
+        return this.startupTimeout;
     }
 
     public Set<String> getServerTypes() throws IllegalArgumentException {

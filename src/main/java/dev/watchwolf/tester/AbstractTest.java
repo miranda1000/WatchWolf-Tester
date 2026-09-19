@@ -11,9 +11,11 @@ import org.junit.jupiter.params.provider.ArgumentsProvider;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -25,6 +27,17 @@ public class AbstractTest implements TestWatcher, // send feedback
     private static class ServerInstance {
         public Tester tester;
         public TesterConnector connector;
+        public Throwable setupFailure;
+        public String serverType;
+        public String serverVersion;
+
+        public boolean isPending() {
+            return this.connector == null && this.setupFailure == null;
+        }
+
+        public String describe() {
+            return this.serverType + " " + this.serverVersion;
+        }
     }
 
     private static HashMap<Class<? extends AbstractTest>, AbstractTest> instances = new HashMap<>();
@@ -56,13 +69,62 @@ public class AbstractTest implements TestWatcher, // send feedback
         this.testID = UUID.randomUUID();
 
         final Object waitForStartup = new Object();
+        try {
+            this.buildTesters(waitForStartup);
+        } catch (Throwable ex) {
+            this.closeEveryTester(); // don't leave the sockets we did open behind
+            throw ex;
+        }
+
+        long timeoutMillis = this.fileLoader.getStartupTimeout() * 1000L;
+        synchronized (waitForStartup) {
+            for (ServerInstance server : this.servers) {
+                try {
+                    server.tester.run();
+                } catch (Throwable ex) {
+                    // never leave a server pending forever because the one before it failed to ask
+                    server.setupFailure = ex;
+                }
+            }
+
+            long deadline = System.currentTimeMillis() + timeoutMillis;
+            while (this.servers.stream().anyMatch(ServerInstance::isPending)) {
+                long remaining = deadline - System.currentTimeMillis();
+                if (remaining <= 0) break; // reported below, naming who never came up
+                try {
+                    waitForStartup.wait(remaining);
+                } catch (InterruptedException ignore) {
+                    break;
+                }
+            }
+        }
+
+        this.failIfAnyServerIsNotReady(timeoutMillis);
+        // at this point the connectors are ready; end the setup and start the tests
+    }
+
+    /**
+     * One Tester per server type x version, each with its own pair of manager connections.
+     */
+    private void buildTesters(final Object waitForStartup) throws IOException {
         for (String serverType : this.fileLoader.getServerTypes()) {
             for (String serverVersion : this.fileLoader.getServerVersions(serverType)) {
-                Socket serversManagerSocket = new Socket(this.fileLoader.getProvider(), 8000), // ServersManager socket TODO change port
-                        clientsManagerSocket = new Socket(this.fileLoader.getProvider(), 7000); // ClientsManager socket TODO change port
-
                 final ServerInstance server = new ServerInstance();
+                server.serverType = serverType;
+                server.serverVersion = serverVersion;
                 this.servers.add(server);
+
+                Socket serversManagerSocket = this.connectToManager("ServersManager", 8000);
+                Socket clientsManagerSocket;
+                try {
+                    clientsManagerSocket = this.connectToManager("ClientsManager", 7000);
+                } catch (RuntimeException ex) {
+                    // no Tester owns this one yet, so nothing else would ever close it
+                    try {
+                        serversManagerSocket.close();
+                    } catch (IOException ignore) {}
+                    throw ex;
+                }
 
                 System.out.println("Starting server for " + serverType + " " + serverVersion + " using ID " + testID.toString());
                 server.tester = new Tester(serversManagerSocket, serverType, serverVersion, this.fileLoader.getPlugin(),
@@ -85,19 +147,79 @@ public class AbstractTest implements TestWatcher, // send feedback
 
                     synchronized (waitForStartup) {
                         server.connector = connector;
-                        waitForStartup.notify();
+                        waitForStartup.notifyAll();
+                    }
+                });
+
+                // a setup failure happens on the connector's async thread; bring it back here, where
+                // it can still stop the tests from running
+                server.tester.setOnSetupFailure((ex) -> {
+                    synchronized (waitForStartup) {
+                        server.setupFailure = ex;
+                        waitForStartup.notifyAll();
                     }
                 });
             }
         }
+    }
 
-        synchronized (waitForStartup) {
-            for (ServerInstance server : this.servers) server.tester.run();
-
+    /**
+     * Opens a socket to one of the managers, bounded, and says which one did not answer.
+     */
+    private Socket connectToManager(String manager, int port) throws ServerSetupException {
+        String provider = this.fileLoader.getProvider();
+        Socket socket = new Socket();
+        try {
+            socket.connect(new InetSocketAddress(provider, port), Tester.CONNECT_TIMEOUT);
+            return socket;
+        } catch (IOException ex) {
             try {
-                for (int n = 0; n < this.servers.size(); n++) waitForStartup.wait(); // wait n times
-                // at this point the connectors are ready; end the setup and start the tests
-            } catch (InterruptedException ignore) {}
+                socket.close();
+            } catch (IOException ignore) {}
+
+            throw new ServerSetupException(null, null,
+                    "could not reach the " + manager + " at " + provider + ":" + port + " (" + ex.getMessage() + "). "
+                    + "Is the WatchWolf environment running, and is `provider` in your config file the host it runs on?", ex);
+        }
+    }
+
+    /**
+     * Turns whatever went wrong during the setup into a single failure of `beforeAll`, so no test
+     * body ever runs against a half-built connector.
+     */
+    private void failIfAnyServerIsNotReady(long timeoutMillis) {
+        List<ServerInstance> broken = new ArrayList<>();
+        for (ServerInstance server : this.servers) {
+            if (server.connector == null) broken.add(server);
+        }
+        if (broken.isEmpty()) return;
+
+        StringBuilder report = new StringBuilder("WatchWolf could not set up ")
+                .append(broken.size()).append(" of ").append(this.servers.size())
+                .append(" server(s); no test was run:");
+        for (ServerInstance server : broken) {
+            report.append(System.lineSeparator()).append("  - ").append(server.describe()).append(": ");
+            if (server.setupFailure != null) report.append(server.setupFailure.getMessage());
+            else report.append("never became ready (gave up after ").append(timeoutMillis / 1000L)
+                    .append("s). The server was asked for, but the 'server up' message never arrived -- "
+                            + "see the ServersManager log for what the Minecraft server did.");
+        }
+
+        this.closeEveryTester(); // whatever did come up is ours to clean up; the test will not do it
+
+        Throwable firstCause = broken.stream().map(server -> server.setupFailure)
+                .filter(java.util.Objects::nonNull).findFirst().orElse(null);
+        throw new ServerSetupException(null, null, report.toString(), firstCause);
+    }
+
+    private void closeEveryTester() {
+        if (this.servers == null) return;
+
+        for (ServerInstance server : this.servers) {
+            if (server.tester == null) continue;
+            try {
+                server.tester.close();
+            } catch (Throwable ignore) {}
         }
     }
 
@@ -110,8 +232,12 @@ public class AbstractTest implements TestWatcher, // send feedback
 
     @Override
     public void afterAll(ExtensionContext extensionContext) throws IOException {
+        if (this.servers == null) return; // the setup never got far enough to start anything
+
         for (ServerInstance server : this.servers) {
             TesterConnector connector = server.connector;
+            if (connector == null) continue; // this one never came up; `beforeAll` already closed it
+
             this.afterAll(connector); // let the test close before the server actually stops
 
             if (this.fileLoader.reportTimings()) {

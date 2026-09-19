@@ -1,0 +1,7 @@
+server-type:
+  - Spigot:
+      - "1.14"
+
+plugin: "Residence"
+
+startup-timeout: 0
