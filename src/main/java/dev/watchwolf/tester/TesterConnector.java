@@ -22,7 +22,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TesterConnector implements ServerManagerPetition, ServerPetition, ClientManagerPetition, Runnable, AsyncPetitionResolver, SynchronizationManager {
     private final Socket serversManagerSocket, clientsManagerSocket;
@@ -30,7 +30,8 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
     private ServerErrorNotifier onServerError;
     private Socket serverManagerSocket;
 
-    private final HashMap<String,ExtendedClientPetition> clients;
+    private final ConcurrentHashMap<String,ExtendedClientPetition> clients;
+    private volatile boolean closed;
 
     private String mcType;
     private String version;
@@ -62,7 +63,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
         this.clientsManagerSocket = clientsManagerSocket;
         this.overrideSync = overrideSync;
 
-        this.clients = new HashMap<>();
+        this.clients = new ConcurrentHashMap<>();
         this.messageQueue = new ArrayList<>();
         this.messageNotifier = new ArrayList<>();
         SocketData.loadStaticBlock(BlockReader.class);
@@ -77,22 +78,46 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
         this.messageNotifier.remove(onMessage);
     }
 
-    public void setServerManagerSocket(Socket s, String mcType, String version) {
+    public synchronized void setServerManagerSocket(Socket s, String mcType, String version) {
+        this.requireOpen(s);
         this.serverManagerSocket = s;
 
         this.mcType = mcType;
         this.version = version;
     }
 
-    public void setClientSocket(Socket s, String username) {
+    public synchronized void setClientSocket(Socket s, String username) {
+        this.requireOpen(s);
         this.clients.put(username, new ExtendedClientSocket(username, s, this, this, this));
     }
 
-    public void close() {
+    public synchronized void close() {
+        if (this.closed) return;
+        this.closed = true;
+
+        for (ExtendedClientPetition client : this.clients.values()) {
+            this.closeSocket(((ClientSocket) client).getSocket());
+        }
+        this.clients.clear();
+        this.closeSocket(this.clientsManagerSocket);
+        this.closeSocket(this.serverManagerSocket);
+        this.closeSocket(this.serversManagerSocket);
+    }
+
+    private void requireOpen(Socket socket) {
+        // Setup may finish opening a socket after another thread has begun teardown.
+        if (this.closed) {
+            this.closeSocket(socket);
+            throw new IllegalStateException("The Tester connector is already closed.");
+        }
+    }
+
+    private void closeSocket(Socket socket) {
+        if (socket == null) return;
         try {
-            this.serversManagerSocket.close();
-            if (this.serverManagerSocket != null) this.serverManagerSocket.close();
-        } catch (IOException e) {
+            socket.close();
+        } catch (IOException | RuntimeException e) {
+            // A failed close must not prevent the remaining connections from being released.
             e.printStackTrace();
         }
     }
@@ -182,7 +207,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
         boolean allClosed = true; // if all the sockets (when IndexOutOfBoundsException is thrown) all are dead
         int index = 0;
 
-        while(true) {
+        while (!this.closed) {
             Socket checkingSocket = null;
             try {
                 checkingSocket = this.getAsyncSocket(index++);
