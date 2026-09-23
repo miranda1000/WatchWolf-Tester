@@ -1,7 +1,7 @@
 package generic;
 
-import dev.watchwolf.entities.items.Item;
-import dev.watchwolf.entities.items.ItemType;
+import dev.watchwolf.core.entities.items.Item;
+import dev.watchwolf.core.entities.items.ItemType;
 import dev.watchwolf.tester.AbstractTest;
 import dev.watchwolf.tester.ExtendedClientPetition;
 import dev.watchwolf.tester.TesterConnector;

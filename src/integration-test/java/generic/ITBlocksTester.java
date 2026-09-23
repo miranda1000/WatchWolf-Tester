@@ -1,13 +1,14 @@
 package generic;
 
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.blocks.Block;
-import dev.watchwolf.entities.blocks.Blocks;
-import dev.watchwolf.entities.blocks.Directionable;
-import dev.watchwolf.entities.blocks.Orientable;
-import dev.watchwolf.entities.blocks.special.Bell;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.entities.blocks.Block;
+import dev.watchwolf.core.entities.blocks.Blocks;
+import dev.watchwolf.core.entities.blocks.Directionable;
+import dev.watchwolf.core.entities.blocks.Orientable;
+import dev.watchwolf.core.entities.blocks.special.Bell;
 import dev.watchwolf.tester.AbstractTest;
 import dev.watchwolf.tester.TesterConnector;
+import dev.watchwolf.core.protocol.SocketHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,8 +51,8 @@ public class ITBlocksTester extends AbstractTest {
 
         ArrayList<Byte> originalData = new ArrayList<>(),
                 gettedData = new ArrayList<>();
-        slab.sendSocketData(originalData);
-        get.sendSocketData(gettedData);
+        SocketHelper.addObject(originalData, slab);
+        SocketHelper.addObject(gettedData, get);
         assertEquals(originalData, gettedData);
     }
 
@@ -66,8 +67,8 @@ public class ITBlocksTester extends AbstractTest {
 
         ArrayList<Byte> originalData = new ArrayList<>(),
                 gettedData = new ArrayList<>();
-        bell.sendSocketData(originalData);
-        get.sendSocketData(gettedData);
+        SocketHelper.addObject(originalData, bell);
+        SocketHelper.addObject(gettedData, get);
         assertEquals(originalData, gettedData);
     }
 

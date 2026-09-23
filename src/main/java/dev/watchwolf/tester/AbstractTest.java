@@ -1,7 +1,7 @@
 package dev.watchwolf.tester;
 
-import dev.watchwolf.entities.ServerType;
-import dev.watchwolf.entities.files.ConfigFile;
+import dev.watchwolf.core.entities.ServerType;
+import dev.watchwolf.core.entities.files.ConfigFile;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;

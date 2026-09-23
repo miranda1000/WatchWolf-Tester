@@ -1,10 +1,10 @@
 package dev.watchwolf.tester;
 
-import dev.watchwolf.entities.*;
-import dev.watchwolf.entities.ServerType;
-import dev.watchwolf.entities.files.ConfigFile;
-import dev.watchwolf.entities.files.Plugin;
-import dev.watchwolf.entities.files.WorldFile;
+import dev.watchwolf.core.entities.*;
+import dev.watchwolf.core.entities.ServerType;
+import dev.watchwolf.core.entities.files.ConfigFile;
+import dev.watchwolf.core.entities.files.plugins.Plugin;
+import dev.watchwolf.core.entities.files.WorldFile;
 import dev.watchwolf.serversmanager.ServerErrorNotifier;
 import dev.watchwolf.serversmanager.ServerStartNotifier;
 

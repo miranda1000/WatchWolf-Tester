@@ -1,12 +1,12 @@
 package dev.watchwolf.tester;
 
-import dev.watchwolf.entities.Difficulty;
-import dev.watchwolf.entities.PluginBuilder;
-import dev.watchwolf.entities.ServerType;
-import dev.watchwolf.entities.WorldType;
-import dev.watchwolf.entities.files.ConfigFile;
-import dev.watchwolf.entities.files.Plugin;
-import dev.watchwolf.entities.files.WorldFile;
+import dev.watchwolf.core.entities.Difficulty;
+import dev.watchwolf.core.entities.files.plugins.PluginFactory;
+import dev.watchwolf.core.entities.ServerType;
+import dev.watchwolf.core.entities.WorldType;
+import dev.watchwolf.core.entities.files.ConfigFile;
+import dev.watchwolf.core.entities.files.plugins.Plugin;
+import dev.watchwolf.core.entities.files.WorldFile;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -227,7 +227,7 @@ public class TestConfigFileLoader {
             String r = this.getEntry(it -> (String) it.get("plugin"));
             if (r == null) throw new ConfigFileException("The config file must contain a plugin to test.");
             try {
-                this.plugin = PluginBuilder.build(r);
+                this.plugin = PluginFactory.build(r);
             } catch (IOException ex) { throw new ConfigFileException(ex); }
         }
 
@@ -241,7 +241,7 @@ public class TestConfigFileLoader {
             if (r != null) { // maybe any extra plugin?
                 for (String path : r) {
                     try {
-                        this.extraPlugins.add(PluginBuilder.build(path));
+                        this.extraPlugins.add(PluginFactory.build(path));
                     } catch (IOException ex) { throw new ConfigFileException("Couldn't load " + path, ex); }
                 }
             }

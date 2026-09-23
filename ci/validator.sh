@@ -16,6 +16,8 @@ local_maven_repos_path="$HOME/.m2"
 tty_flags=""
 if [ -t 1 ]; then tty_flags="-it"; fi
 
+"$script_path/install-core.sh" || exit 1
+
 validation_reports_path="$base_path/target/validation-reports"
 mkdir -p "$validation_reports_path"
 

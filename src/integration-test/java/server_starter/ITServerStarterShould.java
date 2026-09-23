@@ -1,8 +1,8 @@
 package server_starter;
 
-import dev.watchwolf.entities.Difficulty;
-import dev.watchwolf.entities.ServerType;
-import dev.watchwolf.entities.WorldType;
+import dev.watchwolf.core.entities.Difficulty;
+import dev.watchwolf.core.entities.ServerType;
+import dev.watchwolf.core.entities.WorldType;
 import dev.watchwolf.tester.AbstractTest;
 import dev.watchwolf.tester.Tester;
 import org.junit.jupiter.api.MethodOrderer;

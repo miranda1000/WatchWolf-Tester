@@ -24,6 +24,8 @@ local_maven_repos_path="$HOME/.m2"
 tty_flags=""
 if [ -t 1 ]; then tty_flags="-it"; fi
 
+"$script_path/install-core.sh" || exit 1
+
 if [ $preclean -eq 1 ]; then
     docker run $tty_flags --rm -v "$base_path":"/compile" -v "$local_maven_repos_path":/root/.m2 maven:3.8.4-openjdk-8 mvn clean --file '/compile' # clean project & launch "clean" phase (if any)
 fi

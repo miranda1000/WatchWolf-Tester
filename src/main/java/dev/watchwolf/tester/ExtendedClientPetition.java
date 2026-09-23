@@ -1,12 +1,12 @@
 package dev.watchwolf.tester;
 
 import dev.watchwolf.client.ClientPetition;
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.blocks.Block;
-import dev.watchwolf.entities.entities.Entity;
-import dev.watchwolf.entities.items.Item;
-import dev.watchwolf.entities.items.ItemNotFoundInContainerException;
-import dev.watchwolf.entities.items.ItemType;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.entities.blocks.Block;
+import dev.watchwolf.core.entities.entities.Entity;
+import dev.watchwolf.core.entities.items.Item;
+import dev.watchwolf.core.entities.items.ItemNotFoundInContainerException;
+import dev.watchwolf.core.entities.items.ItemType;
 
 import java.io.IOException;
 import java.util.Arrays;

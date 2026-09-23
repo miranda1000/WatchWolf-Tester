@@ -1,6 +1,6 @@
 package worldguard;
 
-import dev.watchwolf.entities.Position;
+import dev.watchwolf.core.entities.Position;
 import dev.watchwolf.tester.AbstractTest;
 import dev.watchwolf.tester.TesterConnector;
 import org.junit.jupiter.api.extension.ExtendWith;

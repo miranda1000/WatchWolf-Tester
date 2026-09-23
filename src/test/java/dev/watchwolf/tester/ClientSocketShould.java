@@ -1,10 +1,10 @@
 package dev.watchwolf.tester;
 
-import dev.watchwolf.entities.Container;
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.SocketHelper;
-import dev.watchwolf.entities.items.Item;
-import dev.watchwolf.entities.items.ItemType;
+import dev.watchwolf.core.entities.Container;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.protocol.SocketHelper;
+import dev.watchwolf.core.entities.items.Item;
+import dev.watchwolf.core.entities.items.ItemType;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -50,13 +50,13 @@ public class ClientSocketShould {
         ArrayList<Byte> responses = new ArrayList<>();
 
         SocketHelper.addShort(responses, 0b000000010001_1_011);
-        expectedPosition.sendSocketData(responses);
+        SocketHelper.addObject(responses, expectedPosition);
         SocketHelper.addShort(responses, 0b000000010010_1_011);
         SocketHelper.addFloat(responses, -12.5f);
         SocketHelper.addShort(responses, 0b000000010011_1_011);
         SocketHelper.addFloat(responses, 92.25f);
         SocketHelper.addShort(responses, 0b000000010100_1_011);
-        new Container(expectedInventory).sendSocketData(responses);
+        SocketHelper.addObject(responses, new Container(expectedInventory));
 
         ScriptedSocket socket = new ScriptedSocket(SocketHelper.toByteArray(responses));
         ExtendedClientPetition client = new ExtendedClientSocket("Steve", socket,

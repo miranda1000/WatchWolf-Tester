@@ -1,14 +1,13 @@
 package dev.watchwolf.tester;
 
 import dev.watchwolf.client.ClientPetition;
-import dev.watchwolf.entities.Container;
-import dev.watchwolf.entities.Message;
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.SocketData;
-import dev.watchwolf.entities.SocketHelper;
-import dev.watchwolf.entities.entities.Entity;
-import dev.watchwolf.entities.files.ConfigFile;
-import dev.watchwolf.entities.items.Item;
+import dev.watchwolf.core.entities.Container;
+import dev.watchwolf.core.protocol.Message;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.protocol.SocketHelper;
+import dev.watchwolf.core.entities.entities.Entity;
+import dev.watchwolf.core.entities.files.ConfigFile;
+import dev.watchwolf.core.entities.items.Item;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -196,7 +195,7 @@ public class ClientSocket implements ClientPetition {
             message.send();
             DataInputStream dis = new DataInputStream(this.socket.getInputStream());
             this.awaitResponse(dis, 0b000000010001_1_011);
-            return (Position) SocketData.readSocketData(dis, Position.class);
+            return (Position) SocketHelper.readObject(dis, Position.class);
         }
     }
 
@@ -241,7 +240,7 @@ public class ClientSocket implements ClientPetition {
             message.send();
             DataInputStream dis = new DataInputStream(this.socket.getInputStream());
             this.awaitResponse(dis, 0b000000010100_1_011);
-            return (Container) SocketData.readSocketData(dis, Container.class);
+            return (Container) SocketHelper.readObject(dis, Container.class);
         }
     }
 
@@ -293,7 +292,7 @@ public class ClientSocket implements ClientPetition {
                 this.asyncResolver.processAsyncReturn(r, dis); // expected return, found async return from another request
                 r = SocketHelper.readShort(dis);
             }
-            video = (ConfigFile)SocketData.readSocketData(dis, ConfigFile.class);
+            video = (ConfigFile)SocketHelper.readObject(dis, ConfigFile.class);
         }
         video.saveToFile(out_path);
     }

@@ -1,8 +1,8 @@
 package world;
 
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.blocks.Block;
-import dev.watchwolf.entities.blocks.Blocks;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.entities.blocks.Block;
+import dev.watchwolf.core.entities.blocks.Blocks;
 import dev.watchwolf.tester.AbstractTest;
 import dev.watchwolf.tester.TesterConnector;
 import org.junit.jupiter.api.extension.ExtendWith;

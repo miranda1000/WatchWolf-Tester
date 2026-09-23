@@ -1,20 +1,20 @@
 package dev.watchwolf.tester;
 
 import dev.watchwolf.client.MessageNotifier;
-import dev.watchwolf.entities.*;
-import dev.watchwolf.entities.blocks.BlockReader;
+import dev.watchwolf.core.entities.*;
 import dev.watchwolf.server.ServerPetition;
 import dev.watchwolf.server.ServerStopNotifier;
 import dev.watchwolf.clientsmanager.ClientManagerPetition;
-import dev.watchwolf.entities.blocks.Block;
-import dev.watchwolf.entities.entities.Entity;
-import dev.watchwolf.entities.entities.EntityType;
-import dev.watchwolf.entities.files.ConfigFile;
-import dev.watchwolf.entities.files.Plugin;
-import dev.watchwolf.entities.items.Item;
+import dev.watchwolf.core.entities.blocks.Block;
+import dev.watchwolf.core.entities.entities.Entity;
+import dev.watchwolf.core.entities.files.ConfigFile;
+import dev.watchwolf.core.entities.files.plugins.Plugin;
+import dev.watchwolf.core.entities.items.Item;
 import dev.watchwolf.serversmanager.ServerErrorNotifier;
 import dev.watchwolf.serversmanager.ServerManagerPetition;
 import dev.watchwolf.serversmanager.ServerStartNotifier;
+import dev.watchwolf.core.protocol.Message;
+import dev.watchwolf.core.protocol.SocketHelper;
 
 import java.io.*;
 import java.net.Socket;
@@ -66,8 +66,6 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
         this.clients = new ConcurrentHashMap<>();
         this.messageQueue = new ArrayList<>();
         this.messageNotifier = new ArrayList<>();
-        SocketData.loadStaticBlock(BlockReader.class);
-        SocketData.loadStaticBlock(EntityType.class);
     }
 
     public void addOnMessage(MessageNotifier onMessage) {
@@ -360,7 +358,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
         SocketHelper.addArray(message, plugins);
 
-        worldType.sendSocketData(message);
+        SocketHelper.addShort(message, worldType.ordinal());
 
         SocketHelper.addString(message, seed);
 
@@ -444,7 +442,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
                 r = SocketHelper.readShort(dis);
             }
             if (SocketHelper.readShort(dis) != 0x0007) throw new IOException("Expected response from 0x0007 operation.");
-            return (Position) SocketData.readSocketData(dis, Position.class);
+            return (Position) SocketHelper.readObject(dis, Position.class);
         }
     }
 
@@ -573,7 +571,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
             }
             if (SocketHelper.readShort(dis) != 0x000F) throw new IOException("Expected response from 0x000F operation.");
 
-            return (Container) SocketData.readSocketData(dis, Container.class);
+            return (Container) SocketHelper.readObject(dis, Container.class);
         }
     }
 
@@ -675,7 +673,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
                 r = SocketHelper.readShort(dis);
             }
             if (SocketHelper.readShort(dis) != 0x0006) throw new IOException("Expected response from 0x0006 operation.");
-            return (Block) SocketData.readSocketData(dis, Block.class);
+            return (Block) SocketHelper.readObject(dis, Block.class);
         }
     }
 
@@ -740,7 +738,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
             // TODO move to helper
             int size = SocketHelper.readShort(dis);
             Entity []entities = new Entity[size];
-            for (int n = 0; n < size; n++) entities[n] = (Entity) SocketData.readSocketData(dis, Entity.class);
+            for (int n = 0; n < size; n++) entities[n] = (Entity) SocketHelper.readObject(dis, Entity.class);
             return entities;
         }
     }
@@ -781,7 +779,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
                 r = SocketHelper.readShort(dis);
             }
             if (SocketHelper.readShort(dis) != 0x0011) throw new IOException("Expected response from 0x0011 operation.");
-            Entity spawned = (Entity) SocketData.readSocketData(dis, Entity.class);
+            Entity spawned = (Entity) SocketHelper.readObject(dis, Entity.class);
             e.setUUID(spawned.getUUID());
             return spawned;
         }
@@ -813,7 +811,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
                 r = SocketHelper.readShort(dis);
             }
             if (SocketHelper.readShort(dis) != 0x0012) throw new IOException("Expected response from 0x0012 operation.");
-            return (Entity) SocketData.readSocketData(dis, Entity.class);
+            return (Entity) SocketHelper.readObject(dis, Entity.class);
         }
     }
 
@@ -830,7 +828,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
         message.add((byte) 0b00000000);
         message.add((short) 0x0013);
 
-        difficulty.sendSocketData(message);
+        message.add((byte)difficulty.ordinal());
 
         message.send();
 
@@ -1111,7 +1109,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
             }
             if (SocketHelper.readShort(dis) != 0x0005) throw new IOException("Expected response from 0x0005 operation.");
 
-            return (ConfigFile)SocketData.readSocketData(dis, ConfigFile.class);
+            return (ConfigFile)SocketHelper.readObject(dis, ConfigFile.class);
         }
     }
 }

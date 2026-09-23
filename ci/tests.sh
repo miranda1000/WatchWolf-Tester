@@ -115,6 +115,10 @@ if [ $integration -eq 1 ] && [ $skip_preflight -eq 0 ]; then
     preflight_integration_environment || exit 1
 fi
 
+# Core owns the shared petitions and wire entities. When the sibling checkout is available,
+# install that exact source revision into the Maven cache used by the test container.
+"$script_path/install-core.sh" || exit 1
+
 # clear
 docker run $tty_flags --rm -v "$base_path":/compile -v "$local_maven_repos_path":/root/.m2 maven:3.8.4-openjdk-8 mvn clean --file '/compile'
 

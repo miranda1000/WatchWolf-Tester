@@ -1,11 +1,12 @@
 package config;
 
-import dev.watchwolf.entities.files.Plugin;
-import dev.watchwolf.entities.PluginBuilder;
-import dev.watchwolf.entities.ServerType;
-import dev.watchwolf.entities.files.UsualPlugin;
+import dev.watchwolf.core.entities.files.plugins.Plugin;
+import dev.watchwolf.core.entities.files.plugins.PluginFactory;
+import dev.watchwolf.core.entities.ServerType;
+import dev.watchwolf.core.entities.files.plugins.UsualPlugin;
 import dev.watchwolf.tester.ConfigFileException;
 import dev.watchwolf.tester.TestConfigFileLoader;
+import dev.watchwolf.core.protocol.SocketHelper;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,7 +42,7 @@ public class ConfigLoaderShould {
         assertEquals(expectedServerTypes, loader.getServerTypes());
         assertEquals(expectedServerVersions, loader.getServerVersions(ServerType.Spigot));
         assertEquals(expectedUsers, Arrays.asList(loader.getUsers()));
-        assertEquals(new UsualPlugin("Residence"), loader.getPlugin());
+        assertEquals(new UsualPlugin("Residence").toString(), loader.getPlugin().toString());
     }
 
     @Test
@@ -95,8 +97,8 @@ public class ConfigLoaderShould {
         expectedUsers.add("MinecraftGamer_Z");
 
         ArrayList<Plugin> expectedExtraPlugins = new ArrayList<>();
-        expectedExtraPlugins.add(PluginBuilder.build(ConfigLoaderShould.PREFIX + "/Empty.jar"));
-        expectedExtraPlugins.add(PluginBuilder.build("https://watchwolf.dev/versions/WatchWolf-0.1-1.8-1.19.jar"));
+        expectedExtraPlugins.add(PluginFactory.build(ConfigLoaderShould.PREFIX + "/Empty.jar"));
+        expectedExtraPlugins.add(PluginFactory.build("https://watchwolf.dev/versions/WatchWolf-0.1-1.8-1.19.jar"));
 
         String expectedWorld = "world";
 
@@ -114,13 +116,12 @@ public class ConfigLoaderShould {
         assertEquals(expectedSpigotServerVersions, loader.getServerVersions(ServerType.Spigot));
         assertEquals(expectedPaperServerVersions, loader.getServerVersions(ServerType.Paper));
         assertEquals(expectedUsers, Arrays.asList(loader.getUsers()));
-        assertEquals(new UsualPlugin("Residence"), loader.getPlugin());
+        assertEquals(new UsualPlugin("Residence").toString(), loader.getPlugin().toString());
         // the loader keeps the extra plugins in a Set, so their order is not part of the contract.
-        // note we cannot compare as sets either: SocketData overrides equals() but not hashCode().
-        List<Plugin> actualExtraPlugins = Arrays.asList(loader.getExtraPlugins());
-        assertEquals(expectedExtraPlugins.size(), actualExtraPlugins.size());
-        assertTrue(actualExtraPlugins.containsAll(expectedExtraPlugins),
-                "expected " + expectedExtraPlugins + " in any order, got " + actualExtraPlugins);
+        // Compare the wire representation because plugin value equality is not part of Core's API.
+        Set<List<Byte>> expectedPluginData = expectedExtraPlugins.stream().map(ConfigLoaderShould::serialize).collect(Collectors.toSet());
+        Set<List<Byte>> actualPluginData = Arrays.stream(loader.getExtraPlugins()).map(ConfigLoaderShould::serialize).collect(Collectors.toSet());
+        assertEquals(expectedPluginData, actualPluginData);
         assertEquals(1, loader.getMaps().length); assertEquals(expectedWorld, loader.getMaps()[0].getWorldName());
         // config files also come out of a Set, so compare without relying on order
         List<String> actualConfigFiles = Arrays.stream(loader.getConfigFiles())
@@ -129,5 +130,11 @@ public class ConfigLoaderShould {
         assertEquals(expectedConfigFiles.size(), actualConfigFiles.size());
         assertTrue(actualConfigFiles.containsAll(expectedConfigFiles),
                 "expected " + expectedConfigFiles + " in any order, got " + actualConfigFiles);
+    }
+
+    private static List<Byte> serialize(Plugin plugin) {
+        ArrayList<Byte> data = new ArrayList<>();
+        SocketHelper.addObject(data, plugin);
+        return data;
     }
 }

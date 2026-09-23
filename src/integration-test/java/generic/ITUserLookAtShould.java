@@ -1,7 +1,7 @@
 package generic;
 
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.blocks.Blocks;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.entities.blocks.Blocks;
 import dev.watchwolf.tester.AbstractTest;
 import dev.watchwolf.tester.ExtendedClientPetition;
 import dev.watchwolf.tester.TesterConnector;

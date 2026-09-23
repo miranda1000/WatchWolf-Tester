@@ -128,6 +128,7 @@ Use **Java 8**. Everything runs inside Docker, so the host needs nothing but Doc
 - Maven's `org.junit.jupiter:junit-jupiter-engine:5.8.1`
 - Maven's `org.junit.jupiter:junit-jupiter-params:5.8.1`
 - Maven's `org.yaml:snakeyaml:1.21`
+- `dev.watchwolf:watchwolf-core:0.3.3`
 
 ## Running this repository's own tests
 
@@ -159,14 +160,11 @@ A test file that breaks the naming convention is silently never executed — run
 before opening a PR. Those checks are ordinary JUnit tests with one entry per file, so a violation
 names the offending file in `target/validation-reports`. See [`ci/README.md`](ci/README.md).
 
-## Note on the shared entities
+## Shared petitions and entities
 
-Besides the Tester itself, this repository still ships the previous generation of the shared
-WatchWolf classes under `dev.watchwolf.entities.*`. That is what
-[WatchWolf-Server](https://github.com/miranda1000/WatchWolf-Server) links against. Their
-replacement is [WatchWolf-Core](https://github.com/watch-wolf/WatchWolf-Core)
-(`dev.watchwolf.core.*`), which the ServersManager already uses; the two trees are near-duplicates,
-so an entity fix often has to be applied in both.
+[WatchWolf-Core](https://github.com/watch-wolf/WatchWolf-Core) owns the shared petitions, entities,
+generated blocks, and wire serialization used by Tester and Server. When the repositories are
+siblings, the Docker scripts install the local Core checkout automatically before building.
 
 ## Related
 
