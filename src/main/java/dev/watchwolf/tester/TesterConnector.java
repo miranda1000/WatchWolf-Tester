@@ -88,7 +88,7 @@ public class TesterConnector implements ServerManagerPetition, ServerPetition, C
 
     public synchronized void setClientSocket(Socket s, String username) {
         this.requireOpen(s);
-        this.clients.put(username, new ExtendedClientSocket(username, s, this, this, this));
+        this.clients.put(username, new ExtendedClientSocket(username, s, this, this));
     }
 
     public synchronized void close() {

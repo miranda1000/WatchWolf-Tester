@@ -1,6 +1,7 @@
 package dev.watchwolf.tester;
 
 import dev.watchwolf.client.ClientPetition;
+import dev.watchwolf.entities.Container;
 import dev.watchwolf.entities.Message;
 import dev.watchwolf.entities.Position;
 import dev.watchwolf.entities.SocketData;
@@ -182,6 +183,74 @@ public class ClientSocket implements ClientPetition {
         message.add(uuid);
 
         message.send();
+    }
+
+    @Override
+    public Position getPosition() throws IOException {
+        this.syncManager.requestSynchronization(this);
+
+        Message message = new Message(this.socket);
+        message.add((short) 0b000000010001_0_011);
+
+        synchronized (this.socket) {
+            message.send();
+            DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+            this.awaitResponse(dis, 0b000000010001_1_011);
+            return (Position) SocketData.readSocketData(dis, Position.class);
+        }
+    }
+
+    @Override
+    public float getPitch() throws IOException {
+        this.syncManager.requestSynchronization(this);
+
+        Message message = new Message(this.socket);
+        message.add((short) 0b000000010010_0_011);
+
+        synchronized (this.socket) {
+            message.send();
+            DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+            this.awaitResponse(dis, 0b000000010010_1_011);
+            return SocketHelper.readFloat(dis);
+        }
+    }
+
+    @Override
+    public float getYaw() throws IOException {
+        this.syncManager.requestSynchronization(this);
+
+        Message message = new Message(this.socket);
+        message.add((short) 0b000000010011_0_011);
+
+        synchronized (this.socket) {
+            message.send();
+            DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+            this.awaitResponse(dis, 0b000000010011_1_011);
+            return SocketHelper.readFloat(dis);
+        }
+    }
+
+    @Override
+    public Container getInventory() throws IOException {
+        this.syncManager.requestSynchronization(this);
+
+        Message message = new Message(this.socket);
+        message.add((short) 0b000000010100_0_011);
+
+        synchronized (this.socket) {
+            message.send();
+            DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+            this.awaitResponse(dis, 0b000000010100_1_011);
+            return (Container) SocketData.readSocketData(dis, Container.class);
+        }
+    }
+
+    private void awaitResponse(DataInputStream dis, int expectedHeader) throws IOException {
+        int response = SocketHelper.readShort(dis);
+        while (response != expectedHeader) {
+            this.asyncResolver.processAsyncReturn(response, dis);
+            response = SocketHelper.readShort(dis);
+        }
     }
 
     @Override
