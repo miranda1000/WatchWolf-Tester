@@ -128,7 +128,11 @@ Use **Java 8**. Everything runs inside Docker, so the host needs nothing but Doc
 - Maven's `org.junit.jupiter:junit-jupiter-engine:5.8.1`
 - Maven's `org.junit.jupiter:junit-jupiter-params:5.8.1`
 - Maven's `org.yaml:snakeyaml:1.21`
-- `dev.watchwolf:watchwolf-core:0.3.3`
+- `com.github.watch-wolf:WatchWolf-Core:0.3.3` (JitPack)
+
+The CI scripts first resolve Core from JitPack using Maven's local cache. If resolution fails,
+they build the sibling `../WatchWolf-Core` checkout, which must match `watchwolf-core.version`
+in `pom.xml`, and install it under the same JitPack coordinates. The sibling checkout is unchanged.
 
 ## Running this repository's own tests
 
