@@ -2,11 +2,11 @@ package generic;
 
 import dev.watchwolf.client.ClientPetition;
 import dev.watchwolf.client.MessageNotifier;
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.blocks.Block;
-import dev.watchwolf.entities.blocks.Blocks;
-import dev.watchwolf.entities.items.Item;
-import dev.watchwolf.entities.items.ItemType;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.entities.blocks.Block;
+import dev.watchwolf.core.entities.blocks.Blocks;
+import dev.watchwolf.core.entities.items.Item;
+import dev.watchwolf.core.entities.items.ItemType;
 import dev.watchwolf.tester.AbstractTest;
 import dev.watchwolf.tester.ExtendedClientPetition;
 import dev.watchwolf.tester.TesterConnector;

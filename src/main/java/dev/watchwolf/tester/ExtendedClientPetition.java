@@ -1,27 +1,20 @@
 package dev.watchwolf.tester;
 
 import dev.watchwolf.client.ClientPetition;
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.Container;
-import dev.watchwolf.entities.blocks.Block;
-import dev.watchwolf.entities.entities.Entity;
-import dev.watchwolf.entities.items.Item;
-import dev.watchwolf.entities.items.ItemNotFoundInContainerException;
-import dev.watchwolf.entities.items.ItemType;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.entities.blocks.Block;
+import dev.watchwolf.core.entities.entities.Entity;
+import dev.watchwolf.core.entities.items.Item;
+import dev.watchwolf.core.entities.items.ItemNotFoundInContainerException;
+import dev.watchwolf.core.entities.items.ItemType;
 
 import java.io.IOException;
 import java.util.Arrays;
 
 /**
- * There's some petitions player-related that needs to be launched in the server-side.
- * The interface will "redirect" the petition, thus being invisible to the user.
+ * Convenience operations built on top of the client petition API.
  */
 public interface ExtendedClientPetition extends ClientPetition {
-    public Position getPosition() throws IOException;
-    public float getPitch() throws IOException;
-    public float getYaw() throws IOException;
-    public Container getInventory() throws IOException;
-
     /**
      * Instead of calculating the pitch and yaw, just specify the target position
      * @param targetPosition Place to look

@@ -1,12 +1,12 @@
 package dev.watchwolf.tester;
 
-import dev.watchwolf.entities.Difficulty;
-import dev.watchwolf.entities.SocketHelper;
-import dev.watchwolf.entities.WorldType;
-import dev.watchwolf.entities.files.ConfigFile;
-import dev.watchwolf.entities.files.Plugin;
-import dev.watchwolf.entities.files.UsualPlugin;
-import dev.watchwolf.entities.files.WorldFile;
+import dev.watchwolf.core.entities.Difficulty;
+import dev.watchwolf.core.protocol.SocketHelper;
+import dev.watchwolf.core.entities.WorldType;
+import dev.watchwolf.core.entities.files.ConfigFile;
+import dev.watchwolf.core.entities.files.plugins.Plugin;
+import dev.watchwolf.core.entities.files.plugins.UsualPlugin;
+import dev.watchwolf.core.entities.files.WorldFile;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;

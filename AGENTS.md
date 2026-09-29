@@ -8,8 +8,7 @@ then tears everything down.
 `dev.watchwolf:watchwolf-tester` · **Java 8** · Maven · published to GitHub Packages
 (`maven.pkg.github.com/miranda1000/watchwolf-tester`).
 
-This repo **also still carries the legacy shared library** (`dev.watchwolf.entities.*`) — see
-[Two roles](#two-roles).
+Shared petitions, entities, and wire serializers come from WatchWolf-Core.
 
 ## Writing a test
 
@@ -64,13 +63,10 @@ See `src/test/java/config/resources/complex.yaml` for a worked example of all of
 src/main/java/dev/watchwolf/
 ├── tester/          Tester, TesterConnector, AbstractTest, TestConfigFileLoader,
 │                    ClientSocket / ExtendedClientSocket, SynchronizationManager
-├── entities/        LEGACY shared domain model (blocks incl. 562 generated classes, entities,
-│                    items, files, Position, Version, SocketData, SocketHelper)
-├── server/          ServerPetition, BaseServerPetition, WorldGuardServerPetition,
-│                    EnhancedInformationServerPetition
 ├── serversmanager/  ServerManagerPetition, ServerStartNotifier, ServerErrorNotifier
-├── client/          ClientPetition, MessageNotifier
-└── clientsmanager/  ClientManagerPetition
+
+WatchWolf-Core supplies `dev.watchwolf.core.entities.*` plus the `client`, `server`,
+`clientsmanager`, and `tester.Petition` contracts.
 
 src/test/java/             unit tests (*Should) — hermetic, no environment needed
 src/integration-test/java/ system tests (IT*) — drive real servers and real bots
@@ -131,17 +127,12 @@ assertions had silently rotted, and two `FIXME`s in the unit suite mark real bug
 
 ## Conventions and gotchas
 
-### Two roles
+### Shared model
 
-1. **The Tester library** — what plugin authors depend on.
-2. **The legacy shared library** — `dev.watchwolf.entities.*` and the `server`/`serversmanager`/
-   `client` petition interfaces. WatchWolf-Server links against `watchwolf-tester-0.2.1.jar` for
-   exactly this. Its replacement is
-   [WatchWolf-Core](https://github.com/watch-wolf/WatchWolf-Core) (`dev.watchwolf.core.*`), which
-   the ServersManager already uses. **The two trees are near-duplicates** — `entities/blocks/`,
-   `entities/entities/` and `entities/items/` here mirror `core/entities/…` there, down to the
-   same 562 generated block classes. A change to an entity usually has to be made twice; check
-   both before assuming a fix is complete.
+The Tester depends on [WatchWolf-Core](https://github.com/watch-wolf/WatchWolf-Core) for shared
+petitions, entities, generated blocks, and wire serialization. In a sibling multi-repository
+checkout, the Docker scripts install that Core checkout into their shared Maven cache before
+building; otherwise Maven resolves the declared `watchwolf-core` dependency normally.
 
 ### Everything else
 
@@ -152,14 +143,12 @@ assertions had silently rotted, and two `FIXME`s in the unit suite mark real bug
     `plugins/plugins/`. The map form (`"Dir": file`) was fixed in `0a16f0e`; the zip form was not.
   - `Position.getBlock*()` casts to `int`, truncating towards zero. Minecraft block coordinates
     floor, so `x = -0.5` should be block `-1` and currently reports `0`.
-- **`SocketData` overrides `equals()` but not `hashCode()`.** `TestConfigFileLoader` keeps plugins
-  and config files in `HashSet`s, so their de-duplication is unreliable and set-based comparisons
-  in tests are unsafe — compare with `containsAll` instead.
-
-- `entities/blocks/special/**` and `entities/entities/EntityType.java` are **generated** by
+- Core plugin/file entities do not define value equality. `TestConfigFileLoader` keeps them in
+  `HashSet`s, so tests that need value comparison use their serialized representation.
+- Core's `entities/blocks/special/**` and `entities/entities/EntityType.java` are **generated** by
   [WatchWolf-MaterialGetter](https://github.com/miranda1000/WatchWolf-MaterialGetter). They
   carry a "do not modify" header. Adding a block property is a multi-repo procedure documented in
-  that repo's README, ending in `entities/blocks/BlockReader` here.
+  that repo's README and the corresponding Core RPC block serializer.
 - The wire protocol is **hand-written**: `TesterConnector` builds and parses packets byte by byte
   against `API/API.tex` in the WatchWolf repo. Adding an operation means changing the spec, this
   connector, and the peer (WatchWolf-Server or WatchWolf-Client) together.

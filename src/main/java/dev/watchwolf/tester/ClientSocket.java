@@ -1,13 +1,13 @@
 package dev.watchwolf.tester;
 
 import dev.watchwolf.client.ClientPetition;
-import dev.watchwolf.entities.Message;
-import dev.watchwolf.entities.Position;
-import dev.watchwolf.entities.SocketData;
-import dev.watchwolf.entities.SocketHelper;
-import dev.watchwolf.entities.entities.Entity;
-import dev.watchwolf.entities.files.ConfigFile;
-import dev.watchwolf.entities.items.Item;
+import dev.watchwolf.core.entities.Container;
+import dev.watchwolf.core.protocol.Message;
+import dev.watchwolf.core.entities.Position;
+import dev.watchwolf.core.protocol.SocketHelper;
+import dev.watchwolf.core.entities.entities.Entity;
+import dev.watchwolf.core.entities.files.ConfigFile;
+import dev.watchwolf.core.entities.items.Item;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -185,6 +185,74 @@ public class ClientSocket implements ClientPetition {
     }
 
     @Override
+    public Position getPosition() throws IOException {
+        this.syncManager.requestSynchronization(this);
+
+        Message message = new Message(this.socket);
+        message.add((short) 0b000000010001_0_011);
+
+        synchronized (this.socket) {
+            message.send();
+            DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+            this.awaitResponse(dis, 0b000000010001_1_011);
+            return (Position) SocketHelper.readObject(dis, Position.class);
+        }
+    }
+
+    @Override
+    public float getPitch() throws IOException {
+        this.syncManager.requestSynchronization(this);
+
+        Message message = new Message(this.socket);
+        message.add((short) 0b000000010010_0_011);
+
+        synchronized (this.socket) {
+            message.send();
+            DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+            this.awaitResponse(dis, 0b000000010010_1_011);
+            return SocketHelper.readFloat(dis);
+        }
+    }
+
+    @Override
+    public float getYaw() throws IOException {
+        this.syncManager.requestSynchronization(this);
+
+        Message message = new Message(this.socket);
+        message.add((short) 0b000000010011_0_011);
+
+        synchronized (this.socket) {
+            message.send();
+            DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+            this.awaitResponse(dis, 0b000000010011_1_011);
+            return SocketHelper.readFloat(dis);
+        }
+    }
+
+    @Override
+    public Container getInventory() throws IOException {
+        this.syncManager.requestSynchronization(this);
+
+        Message message = new Message(this.socket);
+        message.add((short) 0b000000010100_0_011);
+
+        synchronized (this.socket) {
+            message.send();
+            DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+            this.awaitResponse(dis, 0b000000010100_1_011);
+            return (Container) SocketHelper.readObject(dis, Container.class);
+        }
+    }
+
+    private void awaitResponse(DataInputStream dis, int expectedHeader) throws IOException {
+        int response = SocketHelper.readShort(dis);
+        while (response != expectedHeader) {
+            this.asyncResolver.processAsyncReturn(response, dis);
+            response = SocketHelper.readShort(dis);
+        }
+    }
+
+    @Override
     public int start_recording() throws IOException {
         Message message = new Message(this.socket);
 
@@ -224,7 +292,7 @@ public class ClientSocket implements ClientPetition {
                 this.asyncResolver.processAsyncReturn(r, dis); // expected return, found async return from another request
                 r = SocketHelper.readShort(dis);
             }
-            video = (ConfigFile)SocketData.readSocketData(dis, ConfigFile.class);
+            video = (ConfigFile)SocketHelper.readObject(dis, ConfigFile.class);
         }
         video.saveToFile(out_path);
     }

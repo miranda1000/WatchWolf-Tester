@@ -1,9 +1,9 @@
 package dev.watchwolf.serversmanager;
 
-import dev.watchwolf.entities.ServerType;
-import dev.watchwolf.entities.WorldType;
-import dev.watchwolf.entities.files.ConfigFile;
-import dev.watchwolf.entities.files.Plugin;
+import dev.watchwolf.core.entities.ServerType;
+import dev.watchwolf.core.entities.WorldType;
+import dev.watchwolf.core.entities.files.ConfigFile;
+import dev.watchwolf.core.entities.files.plugins.Plugin;
 
 import java.io.IOException;
 
